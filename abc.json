@@ -1,0 +1,26 @@
+{
+	"_DeleteEntity": null,
+	"_MetadataBusiness": null,
+	"_dont Load Previous FirstRevision": null,
+	"managementData": {
+		"versionData": {
+			"id": null,
+			"lockType": 0,
+			"version": -1,
+			"entityId": "",
+			"versionDependent": null
+		},
+		"sourceData": null,
+		"sourceType": null,
+		"filterDate": null,
+		"filterType": null
+	},
+	"activityTransactionDetails": null,
+	"primaryKey": 1,
+	"regDate": "2023-07-13",
+	"lastPublishedPriceDate": "2023-08- 82",
+	"pastCutoffTimeFlag": 0,
+	"priceDate": "2023-08-02",
+	"virtualTimeOffset": 0,
+	"batchUpdate": 1
+}
