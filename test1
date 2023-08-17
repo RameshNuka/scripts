@@ -1,0 +1,29 @@
+# Read server and service information from the CSV file
+$csvPath = "path\to\servers_and_services.csv"
+$servicesToMonitor = Import-Csv $csvPath
+
+foreach ($entry in $servicesToMonitor) {
+    $serverName = $entry.ServerName
+    $serviceName = $entry.ServiceName
+
+    $serviceStatus = Invoke-Command -ComputerName $serverName -ScriptBlock {
+        param($serviceName)
+        $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+        if ($service) {
+            return $service.Status
+        } else {
+            return "ServiceNotFound"
+        }
+    } -ArgumentList $serviceName
+
+    if ($serviceStatus -eq "Running") {
+        Write-Host "$serviceName on $serverName is running."
+        # Add any actions you want to perform when the service is running.
+    } elseif ($serviceStatus -eq "ServiceNotFound") {
+        Write-Host "$serviceName on $serverName is not installed or cannot be found."
+        # Add any actions you want to perform when the service is not installed or found.
+    } else {
+        Write-Host "$serviceName on $serverName is not running."
+        # Add any actions you want to perform when the service is not running.
+    }
+}
