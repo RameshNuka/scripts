@@ -1,0 +1,15 @@
+$serviceName = "metricbeat"
+$service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+
+if ($service) {
+    if ($service.Status -eq "Running") {
+        Write-Host "$serviceName is running."
+        # Add any actions you want to perform when the service is running.
+    } else {
+        Write-Host "$serviceName is not running."
+        # Add any actions you want to perform when the service is not running.
+    }
+} else {
+    Write-Host "$serviceName is not installed or cannot be found."
+    # Add any actions you want to perform when the service is not installed or found.
+}
