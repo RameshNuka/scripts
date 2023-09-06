@@ -1,0 +1,45 @@
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "script": {
+            "script": {
+              "source": """
+                def currentTime = Instant.now();
+                def formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+                def eventTime = ZonedDateTime.parse(doc['your_date_string_field'].value, formatter).toInstant();
+                def timeDifferenceInSeconds = ChronoUnit.SECONDS.between(eventTime, currentTime);
+                return timeDifferenceInSeconds > 30 && doc['your_input_field'].value == params.inputValue;
+              """,
+              "params": {
+                "inputValue": "your_desired_value"
+              },
+              "lang": "painless"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
+
+*****
+
+{
+  "query": {
+    "script": {
+      "script": {
+        "source": """
+          def currentTime = Instant.now();
+          def formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+          def eventTime = ZonedDateTime.parse(doc['your_date_string_field'].value, formatter).toInstant();
+          def timeDifferenceInSeconds = ChronoUnit.SECONDS.between(eventTime, currentTime);
+          return timeDifferenceInSeconds > 30;
+        """,
+        "lang": "painless"
+      }
+    }
+  }
+}
