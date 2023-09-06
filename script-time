@@ -1,0 +1,56 @@
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "script": {
+            "script": {
+              "source": "doc['@timestamp'].value.isBefore(Instant.now())",
+              "lang": "painless"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
+
+
+********
+
+
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "script": {
+            "script": {
+              "source": """
+                def currentTime = Instant.now();
+                def eventTime = doc['your_datetime_field'].value.toInstant();
+                def timeDifference = Duration.between(eventTime, currentTime).getSeconds();
+                return timeDifference > 30;
+              """,
+              "lang": "painless"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
+
+****
+
+{
+  "query": {
+    "range": {
+      "your_field_name": {
+        "gt": 0
+      }
+    }
+  }
+}
