@@ -1,0 +1,1 @@
+doc['myStringDateField'].value != null ? LocalDateTime.parse(doc['myStringDateField'].value, DateTimeFormatter.ISO_DATE_TIME).atZone(ZoneId.of('UTC')).toInstant().toEpochMilli() : null
