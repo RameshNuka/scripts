@@ -1,0 +1,14 @@
+filebeat.inputs:
+- type: log
+  paths:
+    - /path/to/your/log/file.log
+  multiline.pattern: '^\d{2}-[A-Z][a-z]{2}-\d{4}'  # Regex pattern for date (e.g., 12-Sep-2023)
+  multiline.negate: true
+  multiline.match: after
+  multiline.max_lines: 1000  # Adjust as needed
+  fields:
+    log_type: your_log_type  # Optional, set a custom field for identification
+
+output.elasticsearch:
+  hosts: ["your_elasticsearch_host:9200"]
+  index: "your_index_name"  # Optional, set your desired index name
