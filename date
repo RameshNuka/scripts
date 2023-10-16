@@ -1,0 +1,65 @@
+"data": {
+  "url": {
+    "index": "your_index_name",
+    "body": {
+      "size": 1000,  // Limit the number of documents to retrieve
+      "sort": {
+        "@timestamp": "desc"  // Replace with the name of your date field
+      }
+    }
+  },
+  "format": {
+    "property": "hits.hits"
+  }
+}
+
+
+
+***
+
+
+
+
+  "encoding": {
+  "x": {
+    "field": "your_custom_date_field",  // Replace with your custom date field name
+    "type": "temporal",
+    "axis": {"title": "Custom Date"},
+    "scale": {"domain": {"selection": "brush"}},
+    "title": "Custom Date"
+  },
+  "color": {
+    "condition": {
+      "test": "toDate(datum.your_custom_date_field) !== time(datetimeoffset(now()))",
+      "value": "red"  // Change the color to red for non-today dates
+    },
+    "value": "blue"  // Default color for today's date
+  }
+}
+
+
+
+***
+
+  "data": {
+  "values": [
+    {
+      "dateField": "2023-10-16T00:00:00.000Z"  // Replace with your desired date
+    }
+  ]
+}
+****
+"encoding": {
+  "x": {
+    "field": "dateField",
+    "type": "temporal",
+    "axis": {"title": "Date"}
+  },
+  "color": {
+    "condition": {
+      "test": "toDate(datum.dateField) !== time(datetimeoffset(now()))",
+      "value": "red"  // Change the color to red for non-today date
+    },
+    "value": "blue"  // Default color for today's date
+  }
+}
