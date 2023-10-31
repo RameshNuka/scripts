@@ -1,0 +1,30 @@
+  ruby {
+    code => '
+      match_data = event.get("MonitoredEntity[cir]").match(/\[Job\]\[\[Name\]-(.*?)\]/)
+      if match_data
+        event.set("JobValue", match_data[1])
+      end
+    '
+  }
+
+
+*******
+
+      # Use the ruby filter to extract the word
+  ruby {
+    code => '
+      match_data = event.get("MonitoredEntity[cir]").scan(/\[Job\]\[\[Name\]-(\w+)/)
+      if match_data.length > 0
+        event.set("NextWord", match_data[0][0])
+      end
+    '
+  }
+}
+
+    *******
+
+
+        add_field => {
+      "JobName" => "%{[MonitoredEntity][cir][/\\[Job\\]\\[\\[([^\]]+)]\\]]}"
+    }
+  }
