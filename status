@@ -1,0 +1,33 @@
+if (doc['status'].size() > 0) {
+  def dateFormat = "yyyy-MM-dd HH:mm:ss";
+
+  // Initialize variables to store the timestamps
+  ZonedDateTime startTimestamp = null;
+  ZonedDateTime stopTimestamp = null;
+
+  // Loop through the documents to find "start" and "stop" timestamps
+  for (int i = 0; i < doc['status'].size(); i++) {
+    String currentStatus = doc['status'][i];
+    String currentTimestamp = doc['timestamp'][i];
+
+    if (currentStatus == "start") {
+      startTimestamp = ZonedDateTime.parse(currentTimestamp, DateTimeFormatter.ofPattern(dateFormat));
+    } else if (currentStatus == "stop") {
+      stopTimestamp = ZonedDateTime.parse(currentTimestamp, DateTimeFormatter.ofPattern(dateFormat));
+    }
+  }
+
+  if (startTimestamp != null && stopTimestamp != null) {
+    // Calculate the duration in seconds
+    long duration = ChronoUnit.SECONDS.between(startTimestamp, stopTimestamp);
+
+    // Store the duration in a new field (in seconds)
+    ctx._source['duration_seconds'] = duration;
+  } else {
+    // Handle cases where either "start" or "stop" timestamps are missing
+    ctx._source['duration_seconds'] = 0;
+  }
+} else {
+  // Handle cases where there are no status fields
+  ctx._source['duration_seconds'] = 0;
+}
