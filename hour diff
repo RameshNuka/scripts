@@ -1,0 +1,38 @@
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {
+          "range": {
+            "@timestamp": {
+              "gte": "now-1h/h",   # Check for documents within the last 1 hour
+              "lte": "now"
+            }
+          }
+        },
+        {
+          "script": {
+            "script": {
+              "lang": "painless",
+              "source": """
+                def formatter = DateTimeFormatter.ofPattern('yyyy-MM-dd HH:mm');
+                def timestamp = doc['@timestamp'].value;
+                def executedAt = doc['sql.metrics.string.executedat'].value;
+
+                def timestampFormatted = formatter.format(timestamp);
+                def executedAtFormatted = formatter.format(executedAt);
+
+                def duration = Duration.between(
+                  ZonedDateTime.parse(timestampFormatted, formatter),
+                  ZonedDateTime.parse(executedAtFormatted, formatter)
+                );
+
+                duration.toMillis() <= 3600000  # Check if the difference is less than 1 hour (3600000 milliseconds)
+              """
+            }
+          }
+        }
+      ]
+    }
+  }
+}
