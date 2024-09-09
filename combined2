@@ -1,0 +1,11 @@
+filebeat.inputs:
+  - type: filestream
+    paths:
+      - /elk_new/logstash-8.15.0/config/something.log
+    fields:
+      log_source: "/elk_new/logstash-8.15.0/config/something.log"
+    processors:
+      - dissect:
+          tokenizer: "/elk_new/logstash-8.15.0/%{field1}/%{field2}.log"
+          field: "log_source"
+          target_prefix: "file_path"
