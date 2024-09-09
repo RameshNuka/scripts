@@ -1,0 +1,33 @@
+PUT _ingest/pipeline/combined_pipeline
+{
+  "description": "Pipeline to extract file path components and parse Oracle Unified Audit logs",
+  "processors": [
+    {
+      "dissect": {
+        "field": "log.file.path",
+        "pattern": "/elk_new/logstash-8.15.0/%{config}/%{filename}.log",
+        "target_field": "file_path"
+      }
+    },
+    {
+      "grok": {
+        "field": "message",
+        "patterns": [
+          "%{SYSLOGTIMESTAMP:timestamp} %{HOSTNAME:hostname} %{WORD:process} \\[%{NUMBER:pid}\\]: Oracle Unified Audit \\[%{NUMBER:audit_id}\\]: LENGTH: %{NUMBER:length} TYPE: \"%{NUMBER:type}\" DBID: \"%{NUMBER:dbid}\" SESID: \"%{NUMBER:sesid}\" CLIENTID:\"%{DATA:client_id}\" ENTRYID:\"%{NUMBER:entry_id}\" STMTID: \"%{NUMBER:stmt_id}\" DBUSER: \"%{DATA:dbuser}\" CURUSER: \"%{DATA:curuser}\" ACTION: \"%{NUMBER:action}\" RETCODE: \"%{NUMBER:retcode}\" SCHEMA:\"%{DATA:schema}\" OBJNAME:\"%{DATA:objname}\""
+        ]
+      }
+    },
+    {
+      "date": {
+        "field": "timestamp",
+        "formats": ["MMM  d HH:mm:ss", "MMM dd HH:mm:ss"],
+        "timezone": "UTC"
+      }
+    },
+    {
+      "remove": {
+        "field": "message"
+      }
+    }
+  ]
+}
