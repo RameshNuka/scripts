@@ -1,0 +1,33 @@
+PUT _ingest/pipeline/oracle_audit_pipeline_1
+{
+  "description": "Pipeline to parse Oracle Unified Audit logs with date handling",
+  "processors": [
+    {
+      "gsub": {
+        "field": "message",
+        "pattern": "\\s+",
+        "replacement": " "
+      }
+    },
+    {
+      "grok": {
+        "field": "message",
+        "patterns": [
+          "%{SYSLOGTIMESTAMP:timestamp} %{HOSTNAME:hostname} %{WORD:log_process} \\[%{NUMBER:pid}\\]: Oracle Unified Audit \\[%{NUMBER:audit_id}\\]: LENGTH: %{NUMBER:length} TYPE: \"%{NUMBER:type}\" DBID: \"%{NUMBER:dbid}\" SESID: \"%{NUMBER:sesid}\" CLIENTID:\"%{DATA:client_id}\" ENTRYID:\"%{NUMBER:entry_id}\" STMTID: \"%{NUMBER:stmt_id}\" DBUSER: \"%{DATA:dbuser}\" CURUSER: \"%{DATA:curuser}\" ACTION: \"%{NUMBER:action}\" RETCODE: \"%{NUMBER:retcode}\" SCHEMA:\"%{DATA:schema}\" OBJNAME:\"%{DATA:objname}\""
+        ]
+      }
+    },
+    {
+      "date": {
+        "field": "timestamp",
+        "formats": ["MMM d HH:mm:ss", "MMM dd HH:mm:ss"],
+        "timezone": "UTC"
+      }
+    },
+    {
+      "remove": {
+        "field": "message"
+      }
+    }
+  ]
+}
