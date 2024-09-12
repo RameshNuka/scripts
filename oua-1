@@ -1,0 +1,39 @@
+PUT _ingest/pipeline/oracle_audit_flexible-1
+{
+  "description": "Pipeline for parsing Oracle audit logs with optional SCHEMA and OBJNAME fields",
+  "processors": [
+    {
+      "gsub": {
+        "field": "message",
+        "pattern": "\\s+",
+        "replacement": " "
+      }
+    },
+    {
+      "grok": {
+        "field": "message",
+        "patterns": [
+          "%{SYSLOGTIMESTAMP:timestamp} %{HOSTNAME:hostname} journal\\[%{NUMBER:journal_id}\\]: Oracle Unified Audit\\[%{NUMBER:audit_id}\\]: LENGTH: '%{NUMBER:length}' TYPE:\"%{NUMBER:type}\" DBID:\"%{NUMBER:dbid}\" SESID:\"%{NUMBER:sesid}\" CLIENTID:\"%{DATA:client:clientid}\" ENTRYID:\"%{DATA:entryid}\" STMTID:\"%{DATA:stmtid}\" DBUSER:\"%{WORD:dbuser}\" CURUSER:\"%{WORD:curuser}\" ACTION:\"%{NUMBER:action}\" RETCODE:\"%{NUMBER:retcode}\"(?: SCHEMA:\"%{DATA:schema}\")?(?: OBJNAME:\"%{DATA:objname}\")?"
+        ]
+      }
+    },
+    {
+      "date": {
+        "field": "timestamp",
+        "formats": ["MMM d H:m:s", "MMM dd H:m:s"]
+      }
+    }
+  ]
+}
+
+
+POST _ingest/pipeline/oracle_audit_flexible-1/_simulate
+{
+    "docs": [
+      {
+        "_source": {
+          "message": "Sep 12 16:02:59 odbd1.masery.com journal[123456]: Oracle Unified Audit[123456]: LENGTH: '158' TYPE:\"4\" DBID:\"1234567890\" SESID:\"1234567890\" CLIENTID:\"\" ENTRYID:\"\" STMTID:\"\" DBUSER:\"WSREP\" CURUSER:\"WSREP\" ACTION:\"100\" RETCODE:\"0\" SCHEMA:\"SYS\" OBJNAME:\"V$Instance\""
+        }
+      }
+    ]
+  }
