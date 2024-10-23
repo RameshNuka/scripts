@@ -1,0 +1,22 @@
+{
+  "pipeline": {
+    "description": "Test grok pattern",
+    "processors": [
+      {
+        "grok": {
+          "field": "message",
+          "patterns": [
+            "\\{\"timestamp\": \"%{TIMESTAMP_ISO8601:timestamp}\", \"id\": %{NUMBER:id}, \"class\": \"%{WORD:class}\", \"event\": \"%{WORD:event}\""
+          ]
+        }
+      }
+    ]
+  },
+  "docs": [
+    {
+      "_source": {
+        "message": "{\"timestamp\": \"2024-10-16 12:45:17\", \"id\": 5, \"class\": \"connection\", \"event\": \"connect\"}"
+      }
+    }
+  ]
+}
