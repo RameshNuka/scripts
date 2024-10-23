@@ -1,0 +1,23 @@
+POST _ingest/pipeline/_simulate
+{
+  "pipeline": {
+    "description": "Parse custom log",
+    "processors": [
+      {
+        "grok": {
+          "field": "message",
+          "patterns": [
+            "\\{\"timestamp\": \"%{TIMESTAMP_ISO8601:timestamp}\", \"id\": %{NUMBER:id}, \"class\": \"%{WORD:class}\", \"event\": \"%{WORD:event}\", \"connection_id\": %{NUMBER:connection_id}, \"account\": \\{ \"user\": \"%{QUOTEDSTRING:account_user}\", \"host\": \"%{DATA:account_host}\"\\}, \"connection_data\": \\{ \"login\": \\{ \"user\": \"%{QUOTEDSTRING:login_user}\", \"os\": \"%{DATA:login_os}\", \"ip\": \"%{IP:login_ip}\", \"proxy\": \"%{DATA:login_proxy}\"\\}, \"connection_type\": \"%{WORD:connection_type}\", \"status\": %{NUMBER:status}, \"db\": \"%{WORD:db}\", \"connection_attributes\": \\{ \"_runtime_version\": \"%{DATA:runtime_version}\", \"_client_version\": \"%{DATA:client_version}\", \"client_license\": \"%{WORD:client_license}\", \"_runtime_vendor\": \"%{WORD:runtime_vendor}\", \"_client_name\": \"%{DATA:client_name}\"\\}\\}\\}\\}"
+          ]
+        }
+      }
+    ]
+  },
+  "docs": [
+    {
+      "_source": {
+        "message": "{\"timestamp\": \"2024-10-16 12:45:17\", \"id\": 5, \"class\": \"connection\", \"event\": \"connect\", \"connection_id\": 68368, \"account\": { \"user\": \"jira\", \"host\": \"test-1.dev.com\"}, \"connection_data\": { \"login\": { \"user\": \"jira\", \"os\": \"\", \"ip\": \"10.0.0.0\", \"proxy\": \"\", \"connection_type\": \"ssl\", \"status\": 0, \"db\": \"jiradb\", \"connection_attributes\": { \"_runtime_version\": \"11.0.10\", \"_client_version\": \"8.2.0\", \"client_license\": \"GPL\", \"_runtime_vendor\": \"AdoptopenJDK\", \"_client_name\": \"MySQL Connector\"}}}}"
+      }
+    }
+  ]
+}
