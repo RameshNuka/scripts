@@ -1,0 +1,88 @@
+PUT _ingest/pipeline/mysql_audit_dev
+{
+  "description": "Pipeline to process connection log data",
+  "processors": [
+    {
+      "json": {
+        "field": "message",
+        "target_field": "document",
+        "add_to_root": true,
+        "ignore_failure": true
+      }
+    },
+    {
+      "date": {
+        "field": "timestamp",
+        "formats": ["yyyy-MM-dd HH:mm:ss"],
+        "target_field": "@timestamp",
+        "ignore_failure": true
+      }
+    },
+    {
+      "on_failure": {
+        "set": {
+          "field": "error.message",
+          "value": "{{ _ingest.on_failure_message }}"
+        }
+      }
+    }
+  ]
+}
+
+
+***
+
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths:
+      - /path/to/your/logfile.json  # Replace with your actual file path
+
+    # Multiline configuration to treat each JSON object as a single event
+    multiline.pattern: '^\s*{\s*"timestamp"'
+    multiline.negate: true
+    multiline.match: after
+
+    # Parse the JSON data
+    json.keys_under_root: true
+    json.add_error_key: true
+
+output.elasticsearch:
+  hosts: ["<elasticsearch-host>:9200"]
+  pipeline: "parse_connection_data"  # Specify your ingest pipeline here
+
+
+******
+
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths:
+      - /path/to/your/logfile.json
+    
+    # Define multiline options to split each JSON object
+    multiline.pattern: '^\s*{'
+    multiline.negate: true
+    multiline.match: after
+
+    # Enable JSON parsing
+    json.keys_under_root: true
+    json.add_error_key: true
+
+    # Handle cases where JSON entries might have trailing commas or formatting issues
+    processors:
+      - dissect:
+          tokenizer: '%{json_entry},'
+          field: "message"
+          target_prefix: "json_object"
+          ignore_failure: true
+      - json:
+          field: "json_object"
+          target_field: ""
+          add_error_key: true
+
+output.elasticsearch:
+  hosts: ["<elasticsearch-host>:9200"]
+  pipeline: "parse_connection_data"
+
+***
