@@ -1,0 +1,88 @@
+output.elasticsearch:
+  hosts: ["http://localhost:9200"]
+
+  # Default index template settings
+  setup.template.name: "filebeat_template"
+  setup.template.pattern: "filebeat-*"
+  setup.template.enabled: true
+
+  indices:
+    - index: "filebeat-input-index"  # Index for input data
+      when.equals:
+        custom_index: "filebeat-input-index"
+      template.name: "filebeat-input-template"
+      template.pattern: "filebeat-input-*"
+
+    - index: "filebeat-module-index"  # Index for module data
+      when.equals:
+        custom_index: "filebeat-module-index"
+      template.name: "filebeat-module-template"
+      template.pattern: "filebeat-module-*"
+
+******
+filebeat.inputs:
+  - type: filestream
+    id: my-file-input
+    enabled: true
+    paths:
+      - /path/to/your/log/files/*.log
+    processors:
+      - add_fields:
+          target: ''
+          fields:
+            logsource: "dev"
+      - add_fields:
+          target: ''
+          fields:
+            custom_index: "filebeat-input-index"  # Custom field for routing
+
+  - type: filestream
+    id: my-file-input2
+    enabled: true
+    paths:
+      - /path/to/your/log/logs/*.log
+    processors:
+      - add_fields:
+          target: ''
+          fields:
+            logsource: "qa"
+      - add_fields:
+          target: ''
+          fields:
+            custom_index: "filebeat-input-index"  # Same custom index for both inputs
+
+filebeat.modules:
+  - module: nginx
+    access:
+      enabled: true
+      var.paths: ["/path/to/nginx/access.log"]
+    error:
+      enabled: true
+      var.paths: ["/path/to/nginx/error.log"]
+  - module: mysql
+    enabled: true
+    var.paths: ["/path/to/mysql/*.log"]
+
+    # Add a custom field for routing modules data to a separate index
+    processors:
+      - add_fields:
+          target: ''
+          fields:
+            custom_index: "filebeat-module-index"
+
+output.elasticsearch:
+  hosts: ["http://localhost:9200"]
+
+  index: "%{[custom_index]:default-index}"  # Default index if no custom_index field
+
+  indices:
+    - index: "filebeat-input-index"  # Index for inputs data
+      when.equals:
+        custom_index: "filebeat-input-index"
+      pipeline: "demo_pipeline"  # Specify the ingest pipeline for filebeat input data
+
+    - index: "filebeat-module-index"  # Index for modules data
+      when.equals:
+        custom_index: "filebeat-module-index"
+
+*****
