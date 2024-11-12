@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Variables
+ELASTICSEARCH_HOST="https://your-secure-elasticsearch-server:9200"  # Update with your ES server URL
+USERNAME="your_username"           # Replace with Elasticsearch username
+PASSWORD="your_password"           # Replace with Elasticsearch password
+CERT_PATH="/path/to/your/certificate.pem"  # Path to the certificate file
+DATE_SUFFIX=$(date +%Y.%m.%d-%H%M%S)
+INDEX_NAME="mylogs-${DATE_SUFFIX}-000001"
+
+# Create the index with date and unique suffix
+curl -X PUT "$ELASTICSEARCH_HOST/$INDEX_NAME" -u "$USERNAME:$PASSWORD" \
+  --cacert "$CERT_PATH" -H 'Content-Type: application/json' -d'
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 1
+  }
+}
+'
+
+echo "Index $INDEX_NAME created successfully."
