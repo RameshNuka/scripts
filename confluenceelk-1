@@ -1,0 +1,53 @@
+1. Overview of the ELK Clusters
+Purpose: Why the clusters were set up and their primary use cases.
+Project Scope: The extent to which ELK was utilized in the project.
+Cluster Names/Identifiers: Unique names or IDs for each cluster.
+2. Cluster Architecture
+Deployment Details:
+On-premises or cloud-based setup.
+Node types (e.g., Master, Data, Ingest) and their count.
+Server Details:
+Hostnames/IP addresses.
+Resource allocation (CPU, memory, storage).
+Cluster Topology:
+Sharding and replication strategy.
+High availability or fault tolerance setup.
+3. Configuration Details
+Elasticsearch:
+Version.
+Key configurations (e.g., elasticsearch.yml settings).
+Security configurations (TLS, API key, user roles).
+Logstash:
+Configurations for pipelines.
+List of input, filter, and output plugins.
+Kibana:
+Version.
+Dashboards created (with descriptions).
+Configurations (e.g., kibana.yml).
+4. Index Management
+Index naming conventions.
+Retention policies and lifecycle management.
+Snapshot and backup details.
+5. Security Setup
+Authentication and authorization details.
+User roles and access levels.
+API keys or other credential management practices.
+6. Monitoring and Maintenance
+Tools used for monitoring (e.g., X-Pack, Metricbeat).
+Alerts configured and thresholds.
+Performance tuning and maintenance tasks.
+7. Integration Details
+Applications or services integrated with ELK (e.g., OpenTelemetry, APM data sources).
+Log formats and any preprocessing.
+8. Troubleshooting and Known Issues
+Common issues encountered during the project.
+Steps taken to resolve them.
+Unresolved issues or technical debt.
+9. Decommissioning or Handover Plan
+Next steps for the clusters if the project is ending.
+Decommissioning tasks (if applicable).
+Handover contacts and responsibilities.
+10. Additional Documentation
+Links to relevant dashboards or reports.
+Scripts, automation, or tools used for maintenance.
+Backup of configuration files.
