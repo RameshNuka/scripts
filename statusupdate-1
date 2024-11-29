@@ -1,0 +1,7 @@
+Implemented and configured Heartbeat on the ESMon server to monitor the health of Elasticsearch and Kibana services. This enables continuous checks on their status, ensuring the services are operational and responding within acceptable performance thresholds.
+Previously, we were processing both Oracle and MySQL audit logs using the same Filebeat configuration, with all logs shared across respective folders. Now, we have separated the log indexing by directing MySQL logs from one server and Oracle logs from another. This change will help streamline log management and improve scalability by isolating the log processing for each database.
+Successfully installed and configured the APM server in the Dev cluster. The server is now up and running, and is successfully reporting its status.
+Successfully upgraded the ESMon server to version 8.16, ensuring enhanced features and improved performance.
+The indexes, index patterns, and logs in the corporate cluster have been documented for review with Rhyan and the data owners. During this review, we aim to address concerns regarding missing data indexing and resolve any uncertainties to ensure the successful implementation of the ILM policy.
+All changes implemented, scripts developed, details of the ELK upgrade, cluster configurations, and other critical information are being documented in SharePoint to ensure comprehensive tracking and easy future access.
+
