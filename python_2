@@ -1,0 +1,39 @@
+import subprocess
+
+# Define the services to check
+services = ['elasticsearch', 'metricbeat', 'kibana', 'logstash', 'elasticagent']
+
+# Function to check the service status on a remote machine
+def check_service_status(hostname, service):
+    try:
+        # Use SSH or any remote connection method to check the service status
+        # Here we're assuming using 'systemctl' on remote servers via SSH
+        command = f"ssh {hostname} 'systemctl is-active {service}'"
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        
+        # Check the service status and return appropriate value
+        if result.returncode == 0:
+            return "running"
+        else:
+            return "failure"
+    except Exception as e:
+        return f"failure ({str(e)})"
+
+# Read hostnames from the file
+with open('hostnames.txt', 'r') as file:
+    hostnames = file.readlines()
+
+# Print the header line
+header = ["hostname"] + services
+print(",".join(header))
+
+# Process each hostname and check the status of the services
+for hostname in hostnames:
+    hostname = hostname.strip()  # Remove any trailing newline or spaces
+    statuses = [hostname]  # Start with the hostname
+    for service in services:
+        status = check_service_status(hostname, service)
+        statuses.append(status)  # Append the status for the service
+    
+    # Print the result as a single line
+    print(",".join(statuses))
