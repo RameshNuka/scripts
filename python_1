@@ -1,0 +1,22 @@
+import subprocess
+
+def check_service_status(service_name):
+    try:
+        # Run systemctl command to check service status
+        result = subprocess.run([
+            "systemctl", "is-active", service_name
+        ], capture_output=True, text=True)
+        
+        # Return service status message
+        if result.stdout.strip() == "active":
+            return f"{service_name} is running."
+        else:
+            return f"{service_name} is not running. Failure detected!"
+    except Exception as e:
+        return f"Error checking {service_name}: {str(e)}"
+
+if __name__ == "__main__":
+    services = ["elasticsearch", "logstash", "kibana", "metricbeat"]
+    
+    for service in services:
+        print(check_service_status(service))
