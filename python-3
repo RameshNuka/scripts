@@ -1,0 +1,105 @@
+import subprocess
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+# Define the services to check
+services = ['elasticsearch', 'metricbeat', 'kibana', 'logstash', 'elasticagent']
+
+# Function to check the service status on a remote machine
+def check_service_status(hostname, service):
+    try:
+        # Use SSH or any remote connection method to check the service status
+        # Here we're assuming using 'systemctl' on remote servers via SSH
+        command = f"ssh {hostname} 'systemctl is-active {service}'"
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        
+        # Check the service status and return appropriate value
+        if result.returncode == 0:
+            return "running"
+        else:
+            return "failure"
+    except Exception as e:
+        return f"failure ({str(e)})"
+
+# Read hostnames from the file
+with open('hostnames.txt', 'r') as file:
+    hostnames = file.readlines()
+
+# Prepare the HTML table content
+output_html = """<html>
+<head>
+<style>
+    table {border-collapse: collapse; width: 100%;}
+    th, td {border: 1px solid #ddd; padding: 8px; text-align: center;}
+    th {background-color: #f2f2f2;}
+    .running {background-color: #28a745; color: white;}
+    .failure {background-color: #dc3545; color: white;}
+    .other {background-color: #ffc107; color: black;}
+</style>
+</head>
+<body>
+    <h2>Service Status Report</h2>
+    <table>
+        <tr>
+            <th>Hostname</th>
+            <th>Elasticsearch</th>
+            <th>Metricbeat</th>
+            <th>Kibana</th>
+            <th>Logstash</th>
+            <th>ElasticAgent</th>
+        </tr>"""
+
+# Process each hostname and check the status of the services
+for hostname in hostnames:
+    hostname = hostname.strip()  # Remove any trailing newline or spaces
+    output_html += f"<tr><td>{hostname}</td>"  # Start the row with the hostname
+    for service in services:
+        status = check_service_status(hostname, service)
+        
+        # Assign a class for color-coding
+        if status == "running":
+            class_name = "running"
+        elif status == "failure":
+            class_name = "failure"
+        else:
+            class_name = "other"
+        
+        output_html += f"<td class='{class_name}'>{status}</td>"  # Add the service status with class
+        
+    output_html += "</tr>"
+
+# Close the table and HTML tags
+output_html += """
+    </table>
+</body>
+</html>"""
+
+# Email setup
+sender_email = "your_email@example.com"
+receiver_email = "recipient_email@example.com"
+subject = "Service Status Report"
+
+# Setup the MIME
+msg = MIMEMultipart()
+msg['From'] = sender_email
+msg['To'] = receiver_email
+msg['Subject'] = subject
+msg.attach(MIMEText(output_html, 'html'))
+
+# SMTP server configuration (for example, Gmail)
+smtp_server = "smtp.gmail.com"
+smtp_port = 587
+smtp_user = "your_email@example.com"  # Your email address
+smtp_password = "your_email_password"  # Your email password
+
+# Sending the email
+try:
+    # Establish a connection to the SMTP server
+    with smtplib.SMTP(smtp_server, smtp_port) as server:
+        server.starttls()  # Secure the connection
+        server.login(smtp_user, smtp_password)  # Login to the server
+        server.sendmail(sender_email, receiver_email, msg.as_string())  # Send the email
+        print("Email sent successfully!")
+except Exception as e:
+    print(f"Failed to send email: {str(e)}")
