@@ -1,0 +1,30 @@
+# Load required modules
+module(load="imuxsock")  # Local Unix domain socket input
+module(load="imklog")    # Kernel log messages
+module(load="omelasticsearch")  # Elasticsearch output module
+
+# Define Elasticsearch action with dynamic index naming
+action(
+    type="omelasticsearch"
+    server="http://your-elasticsearch-server:9200"
+    searchIndex="syslog-%HOSTNAME%-%$YEAR%-%$MONTH%-%$DAY%"
+    dynSearchIndex="on"
+    uid="elastic"
+    pwd="your-password"
+    template="json-template"
+    bulkmode="on"
+    queue.type="linkedlist"
+    action.resumeretrycount="-1"
+)
+
+# Define JSON template for logs
+template(name="json-template" type="list") {
+    constant(value="{")
+    constant(value="\"@timestamp\":\"") property(name="timereported" dateFormat="rfc3339")
+    constant(value="\",\"host\":\"") property(name="hostname")
+    constant(value="\",\"severity\":\"") property(name="syslogseverity-text")
+    constant(value="\",\"facility\":\"") property(name="syslogfacility-text")
+    constant(value="\",\"syslogtag\":\"") property(name="syslogtag")
+    constant(value="\",\"message\":\"") property(name="msg" format="json")
+    constant(value="\"}")
+}
