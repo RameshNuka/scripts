@@ -1,0 +1,28 @@
+action(
+    type="omelasticsearch"
+    server="https://es-node1:9200"
+    searchIndex="syslog-%HOSTNAME%-%$YEAR%-%$MONTH%-%$DAY%"
+    uid="rsyslog_user"
+    pwd="YourSecurePassword"
+    template="json-template"
+    bulkmode="on"
+    queue.type="linkedlist"
+    action.resumeretrycount="-1"
+    usehttps="on"
+    tls.cacert="/path/to/cert.pem"
+)
+
+action(
+    type="omelasticsearch"
+    server="https://es-node2:9200"
+    searchIndex="syslog-%HOSTNAME%-%$YEAR%-%$MONTH%-%$DAY%"
+    uid="rsyslog_user"
+    pwd="YourSecurePassword"
+    template="json-template"
+    bulkmode="on"
+    queue.type="linkedlist"
+    action.resumeretrycount="-1"
+    usehttps="on"
+    tls.cacert="/path/to/cert.pem"
+    action.execOnlyWhenPreviousFailed="on"
+)
