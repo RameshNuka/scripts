@@ -1,0 +1,31 @@
+curl -X POST "https://es-node1:9200/_security/api_key" -H "Content-Type: application/json" -u "elastic:YourSecurePassword" -d '{
+  "name": "rsyslog-api-key",
+  "role_descriptors": {
+    "rsyslog_writer": {
+      "cluster": ["monitor"],
+      "index": [
+        {
+          "names": ["syslog-*"],
+          "privileges": ["write", "create_index", "create", "manage"]
+        }
+      ]
+    }
+  }
+}'
+
+curl -X GET "https://es-node1:9200/_security/_authenticate" -H "Authorization: ApiKey aLongRandomStringHere"
+
+
+action(
+    type="omelasticsearch"
+    server="https://es-node1:9200"
+    searchIndex="syslog-%HOSTNAME%-%$YEAR%-%$MONTH%-%$DAY%"
+    authmode="basic"
+    auth="ApiKey aLongRandomStringHere"
+    template="json-template"
+    bulkmode="on"
+    queue.type="linkedlist"
+    action.resumeretrycount="-1"
+    usehttps="on"
+    tls.cacert="/path/to/cert.pem"
+)
