@@ -1,0 +1,24 @@
+POST _security/role/rsyslog_writer
+{
+  "cluster": ["monitor"],
+  "indices": [
+    {
+      "names": ["syslog-*"],
+      "privileges": ["write", "create_index", "create", "manage"]
+    }
+  ]
+}
+
+
+POST _security/user/rsyslog_user
+{
+  "password": "YourSecureRsyslogPassword",
+  "roles": ["rsyslog_writer"]
+}
+
+
+GET _security/user/rsyslog_user
+
+GET _security/role/rsyslog_writer
+
+
