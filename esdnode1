@@ -1,0 +1,1 @@
+curl -X PUT "http://<working-node-IP>:9200/_cluster/settings" -H "Content-Type: application/json" -u "elastic:<your-password>" -d "{\"persistent\": {\"cluster.routing.allocation.enable\": \"none\"}}"
