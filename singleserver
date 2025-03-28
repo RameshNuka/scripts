@@ -1,0 +1,26 @@
+single server
+
+ELK (Elasticsearch) on a single-node setup, and it's expecting the cluster health to be green (but it's likely staying at yellow), that’s typically because replica shards can’t be allocated — there's only one node, so there's nowhere to replicate them.
+
+
+By default, Elasticsearch tries to create replicas for high availability. But in a single-node setup, replica shards can't be assigned, so the cluster stays yellow.
+
+Manually set all indices to have 0 replicas, like this:
+
+Step 1: List indices
+bash
+Copy
+Edit
+curl -X GET "localhost:9200/_cat/indices?v"
+Step 2: Set replica count to 0 for all indices
+bash
+Copy
+Edit
+curl -X PUT "localhost:9200/_settings" -H 'Content-Type: application/json' -d'
+{
+  "index" : {
+    "number_of_replicas" : 0
+  }
+}'
+This will turn yellow → green since no replica shards are expected anymore.
+
