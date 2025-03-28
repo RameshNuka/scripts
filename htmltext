@@ -1,0 +1,19 @@
+<html>
+  <body style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+    <p>Dear <span style="color: #0000FF;"><b>${name}</b></span>,</p>
+
+    <p>Sometimes, life puts you in situations where you have to let go of things dear to you in pursuit of something even more meaningful. A few days ago, I found myself in such a situation, and I had to make a hard decision – to step away from work temporarily, to spend quality time with my newborn daughter, and to plan a move to the UK for our next chapter.</p>
+
+    <p>Today marks my last working day, and I want to take this opportunity to express my sincere gratitude to you. You are <span style="color: #0000FF;"><b>${special_word}</b></span>.</p>
+
+    <p>Thank you for the support, guidance, opportunities, and encouragement throughout my journey here. I’ve learned and grown immensely – both professionally and personally – and I couldn’t have asked for a better team or manager to work with. From solving challenges together to celebrating our wins, it has been an incredible experience.</p>
+
+    <p>From the bottom of my heart, I can say this has been the most wonderful team I’ve ever worked with. It is with great respect and a touch of sadness that I bid farewell, hoping our paths cross again in the future.</p>
+
+    <p>I’ve also valued the personal connections built along the way, and I genuinely hope we can stay in touch beyond today.</p>
+
+    <p>Thank you for being an important part of my journey.</p>
+
+    <p>Warm regards,<br><b>Ram</b></p>
+  </body>
+</html>
