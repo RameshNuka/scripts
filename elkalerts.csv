@@ -1,0 +1,22 @@
+| #  | Alert Name                   | Description                            | Threshold                       | Severity | Notification To         | Action Required               |
+| -- | ---------------------------- | -------------------------------------- | ------------------------------- | -------- | ----------------------- | ----------------------------- |
+| 1  | Cluster Health Red           | One or more primary shards unavailable | Status = Red for 5 mins         | Critical | L2, L3, On-call         | Immediate investigation       |
+| 2  | Cluster Health Yellow        | Replica shards unavailable             | Status = Yellow for 30 mins     | High     | L2 Team                 | Capacity/recovery review      |
+| 3  | Snapshot Failure             | Scheduled snapshot unsuccessful        | Any failed snapshot             | Critical | L2, L3                  | Validate backups immediately  |
+| 4  | Storage Utilisation High     | Deployment storage nearing capacity    | >80% used for 15 mins           | High     | Platform Team           | Capacity planning             |
+| 5  | Storage Utilisation Critical | Storage almost exhausted               | >90% used for 10 mins           | Critical | L2, L3, On-call         | Immediate action              |
+| 6  | No Data Received             | Source stopped sending data            | No events for 15 mins           | Critical | Data Ops, App Owner     | Investigate source outage     |
+| 7  | Ingestion Volume Drop        | Sudden drop in ingestion rate          | >50% below baseline for 30 mins | High     | Platform Team           | Investigate pipeline/source   |
+| 8  | Data Latency Alert           | Events arriving late                   | Ingestion delay >15 mins        | High     | Platform Team           | Check pipeline bottlenecks    |
+| 9  | Pipeline Failure Rate        | Ingest pipeline errors increasing      | >5% failures in 15 mins         | High     | Data Engineering        | Review parsing/mapping errors |
+| 10 | Mapping Conflict Detected    | Dynamic mapping conflicts              | Any conflict detected           | Medium   | Data Engineering        | Validate schema changes       |
+| 11 | Elastic Agent Offline        | Agent disconnected from Fleet          | Offline >15 mins                | High     | Platform Team           | Restore agent connectivity    |
+| 12 | Fleet Server Unhealthy       | Fleet Server unavailable               | Health != Healthy for 5 mins    | Critical | Platform Team, On-call  | Restore Fleet service         |
+| 13 | Agent Policy Failure         | Fleet policy deployment failed         | >5 failed assignments           | Medium   | Platform Team           | Review policy changes         |
+| 14 | Trace Ingestion Failure      | APM traces stopped                     | No traces for 15 mins           | High     | Observability Team      | Investigate APM pipeline      |
+| 15 | Service Error Rate Spike     | Application error increase             | Error rate >5% for 10 mins      | High     | Application Team        | Application investigation     |
+| 16 | Service Latency Degradation  | Response times exceeding SLA           | P95 latency > SLA for 15 mins   | High     | App Team, Platform Team | Performance investigation     |
+| 17 | Alert Delivery Failure       | Email/Webhook connector failure        | Failed connector execution      | High     | Platform Team           | Restore notification channels |
+| 18 | Unauthorized Login Attempts  | Excessive authentication failures      | >20 failures in 5 mins          | High     | Security Team           | Security investigation        |
+| 19 | API Key Expiry Warning       | API key nearing expiry                 | Expires within 14 days          | Medium   | Platform Team           | Renew credentials             |
+| 20 | License Consumption Alert    | Subscription usage nearing limits      | >80% licensed usage             | Medium   | Platform Lead           | Capacity/licensing review     |
