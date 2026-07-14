@@ -1,0 +1,76 @@
+
+17840314523957231267875942976347.jpg
+We are using elastic cloud service, so elastic team will.mange the infra.
+
+Yes. Since you are using Elastic Cloud (SaaS), the responsibility matrix should reflect the shared responsibility model.
+
+Elastic is responsible for:
+
+Underlying infrastructure (VMs, storage, networking)
+
+Elasticsearch cluster availability
+
+Node provisioning and replacement
+
+Elastic version upgrades (if managed by Elastic Cloud)
+
+Platform patching
+
+Hardware failures
+
+Auto-healing of nodes
+
+Your team is responsible for:
+
+Index lifecycle management (ILM)
+
+Data ingestion (Beats, Elastic Agent, Logstash)
+
+Pipelines and integrations
+
+Kibana dashboards and visualizations
+
+Security (users, roles, API keys)
+
+Alerting and monitoring
+
+Data retention policies
+
+Index templates and mappings
+
+Snapshot policies (if customer-managed)
+
+Capacity planning (choosing deployment size)
+
+For your sheet, I would update the first three rows as follows:
+
+Task ID	Task Description	Detailed Activities	Responsibility
+1.1	Cluster & Node Health Monitoring	Monitor deployment health, cluster status, node availability, and raise support cases if required. Underlying infrastructure is managed by Elastic Cloud.	Shared (Elastic / Customer)
+1.2	Elastic Version & Platform Maintenance	Elastic Cloud performs platform patching and version maintenance. Customer plans and validates upgrades where applicable.	Elastic
+1.3	Infrastructure / Hardware Maintenance	Provisioning, replacement of failed nodes, storage, networking, OS patching, and hardware maintenance.	Elastic
+I would also rename "Hardware Deployment and Maintenance" to "Infrastructure & Hardware Maintenance", since in Elastic Cloud you never deploy hardware yourself.
+
+This makes the responsibilities accurate for an Elastic Cloud deployment rather than a self-managed Elasticsearch cluster.
+
+
+Can you give me any elastic owned  responsibilities in detailed 
+
+Yes. For Elastic Cloud Hosted (SaaS), there are many responsibilities that are fully owned by Elastic. Below is a detailed list you can directly use in your responsibility matrix.
+
+Task ID	Section	Sub-Section	Task Description	Detailed Activities	Responsibility
+1.1	Platform Ops	Cluster Health	Cluster Availability Management	Monitor cluster health, node health, service availability, automatic recovery of failed nodes, maintain cluster uptime.	Elastic
+1.2	Platform Ops	Infrastructure	Infrastructure Provisioning	Provision and manage compute instances, storage volumes, networking, and underlying cloud resources.	Elastic
+1.3	Platform Ops	Maintenance	Operating System Maintenance	Perform OS patching, security updates, kernel updates, and operating system maintenance on all managed nodes.	Elastic
+1.4	Platform Ops	Maintenance	Elasticsearch Version Maintenance	Provide supported Elasticsearch versions, maintain platform compatibility, manage infrastructure required for upgrades. (Customer chooses when to upgrade.)	Elastic
+1.5	Platform Ops	Maintenance	Kibana Platform Maintenance	Maintain Kibana infrastructure, availability, patching, and platform health.	Elastic
+1.6	Platform Ops	Hardware	Hardware Maintenance	Replace failed hardware, storage devices, compute resources, and underlying infrastructure components without customer involvement.	Elastic
+1.7	Platform Ops	High Availability	Automatic Node Recovery	Detect failed nodes and automatically recreate or replace them while maintaining cluster availability.	Elastic
+1.8	Platform Ops	Storage	Disk Management	Provision, manage, and replace storage volumes, monitor storage hardware failures, and maintain storage infrastructure.	Elastic
+1.9	Platform Ops	Networking	Platform Networking	Maintain internal cluster networking, load balancers, TLS between nodes, DNS, and service connectivity within the managed platform.	Elastic
+1.10	Platform Ops	Security	Platform Security	Secure the managed infrastructure, apply platform security patches, vulnerability remediation, and infrastructure hardening.	Elastic
+1.11	Platform Ops	Monitoring	Platform Monitoring	Continuously monitor platform components, cluster infrastructure, resource utilization, and perform proactive remediation.	Elastic
+1.12	Platform Ops	Disaster Recovery	Infrastructure Recovery	Recover managed infrastructure following hardware or infrastructure failures according to Elastic Cloud SLAs.	Elastic
+1.13	Platform Ops	Capacity	Infrastructure Scaling Support	Provide mechanisms for scaling deployments (memory, storage, topology changes) while maintaining platform stability.	Elastic
+1.14	Platform Ops	Certificates	Platform Certificate Management	Manage certificates used for Elastic Cloud endpoints and platform communications.	Elastic
+1.15	Platform Ops	Support	Platform Incident Management	Investigate and resolve platform-related incidents affecting Elastic Cloud infrastructure and service availability.	Elastic
+What
