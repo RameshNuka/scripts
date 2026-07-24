@@ -1,0 +1,138 @@
+
+Maintenance Window Strategy
+Rather than creating one maintenance window for every monitor, create them based on the same business hours.
+
+Maintenance Window	Applies To	Operational Hours	Maintenance Active
+MW-01	OPAS G2, Event Booking, LessonFlow, AMS SPTS	Monday-Friday 09:00-17:00 UK	Outside 09:00-17:00
+MW-02	All GIS UMV	Monday-Friday 08:00-18:00 UK	Outside 08:00-18:00
+MW-03	Gorilla, HUB	Monday-Friday 07:00-18:00 UK	Outside 07:00-18:00
+MW-04	Delphi	Monday-Sunday 08:00-20:00 UK	Outside 08:00-20:00
+This reduces administration and makes future maintenance much easier.
+
+Documentation
+Kibana Maintenance Window Design
+Objective
+The purpose of maintenance windows is to suppress alert notifications and incident creation during periods when applications are not expected to be available.
+
+Synthetic monitors will continue executing, and data will continue to be stored in Elasticsearch. Only alert actions (email, Helix, ServiceNow, etc.) are suppressed.
+
+Services
+Transaction	Monitor Name	Operational Hours
+OPAS G2	Opas_G2-SPW_Opas_G2	Monday-Friday 09:00-17:00 UK
+Event Booking	Event-Booking	Monday-Friday 09:00-17:00 UK
+LessonFlow	LessonFlow	Monday-Friday 09:00-17:00 UK
+AMS SPTS	Ams_Spts-AMS_Main_page	Monday-Friday 09:00-17:00 UK
+All GIS UMV	Tag: SB_GEOGRAPHICINFORMATIONSYST	Monday-Friday 08:00-18:00 UK
+Gorilla	Gorilla	Monday-Friday 07:00-18:00 UK
+HUB	HUB	Monday-Friday 07:00-18:00 UK
+Delphi	Delphi-DELPHI	Monday-Sunday 08:00-20:00 UK
+Maintenance Window 1
+Name
+MW-BusinessHours-0900-1700
+Covers
+OPAS G2
+
+Event Booking
+
+LessonFlow
+
+AMS SPTS
+
+KQL
+monitor.name : (
+"Opas_G2-SPW_Opas_G2"
+or "Event-Booking"
+or "LessonFlow"
+or "Ams_Spts-AMS_Main_page"
+)
+Schedule
+Business Hours
+
+Monday-Friday
+09:00
+to
+17:00 UK
+Maintenance Window
+
+Monday-Friday
+17:00
+to
+09:00 next day
+Weekend
+
+Friday 17:00
+until
+Monday 09:00
+Maintenance Window 2
+Name
+MW-GIS-0800-1800
+Applies To
+All GIS UMV
+KQL
+tags : "SB_GEOGRAPHICINFORMATIONSYST"
+Schedule
+Business Hours
+
+Monday-Friday
+08:00-18:00
+Maintenance Window
+
+18:00-08:00
+Weekend
+
+Entire Weekend
+
+Maintenance Window 3
+Name
+MW-Gorilla-HUB-0700-1800
+Applies To
+Gorilla
+
+HUB
+
+KQL
+monitor.name : (
+"Gorilla"
+or "HUB"
+)
+Schedule
+Business Hours
+
+Monday-Friday
+07:00-18:00
+Maintenance Window
+
+18:00-07:00
+Weekend
+
+Entire Weekend
+
+Maintenance Window 4
+Name
+MW-Delphi-0800-2000
+KQL
+monitor.name : "Delphi-DELPHI"
+Schedule
+Business Hours
+
+Every Day
+08:00-20:00
+Maintenance Window
+
+20:00-08:00
+Kibana Configuration Steps
+Navigate to Stack Management → Maintenance Windows.
+
+Click Create maintenance window.
+
+Enter the maintenance window name (for example, MW-BusinessHours-0900-1700).
+
+Set the maintenance period to the non-operational hours.
+
+Configure the recurrence (daily/weekly as appropriate).
+
+Under Filters, paste the KQL for the relevant monitors.
+
+Enable the maintenance window.
+
+Repeat for the remaining maintenance windows.
