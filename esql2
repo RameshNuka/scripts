@@ -1,0 +1,20 @@
+FROM .alerts-stack.alerts-default
+| WHERE kibana.alert.rule.category == "Synthetics monitor status"
+| WHERE kibana.alert.status == "recovered"
+| WHERE monitor.name IS NOT NULL
+| WHERE kibana.alert.start IS NOT NULL
+| STATS
+    Alert_Episodes = COUNT(*),
+    First_Alert = MIN(kibana.alert.start),
+    Last_Alert = MAX(kibana.alert.start)
+  BY monitor.name
+| WHERE Alert_Episodes > 1
+| EVAL MTBA_Hours = ROUND(
+    DATE_DIFF("seconds", First_Alert, Last_Alert)
+    / 3600.0
+    / (Alert_Episodes - 1),
+    2
+  )
+| SORT MTBA_Hours ASC
+| LIMIT 10
+| KEEP monitor.name, MTBA_Hours, Alert_Episodes, First_Alert, Last_Alert
