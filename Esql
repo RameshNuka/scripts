@@ -1,0 +1,14 @@
+FROM .alerts-*
+| WHERE kibana.alert.status == "recovered"
+| STATS
+    Failures = COUNT(*),
+    FirstFailure = MIN(@timestamp),
+    LastFailure = MAX(@timestamp)
+  BY monitor.name
+| EVAL
+    MTBF_Hours = ROUND(
+      DATE_DIFF("seconds", FirstFailure, LastFailure) / 3600.0 / Failures,
+      2
+    )
+| SORT MTBF_Hours DESC
+| LIMIT 10
