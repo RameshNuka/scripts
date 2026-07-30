@@ -1,0 +1,40 @@
+Metricbeat/Elastic Agent
+        │
+        ▼
+Collects filesystem metrics every minute
+        │
+        ▼
+Elasticsearch stores system.filesystem.used.pct
+        │
+        ▼
+Kibana Alert Rule runs every 1 minute
+        │
+        ▼
+Checks previous 10 minutes of data
+        │
+        ▼
+Is filesystem usage > 90%?
+        │
+   ┌────┴────┐
+   │         │
+  No        Yes
+   │         │
+Reset      Increase consecutive run count
+counter     │
+            ▼
+      Has it happened 3 consecutive times?
+            │
+      ┌─────┴─────┐
+      │           │
+     No          Yes
+      │           │
+ Wait for      Trigger Critical Alert
+ next run          │
+                   ▼
+      Send notification / Create ITSM incident
+                   │
+                   ▼
+Continue monitoring until usage drops below threshold
+                   │
+                   ▼
+Alert transitions to Recovered
