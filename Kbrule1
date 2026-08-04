@@ -1,0 +1,390 @@
+Below is a document-ready version that you can directly copy into your design or operations document.
+
+---
+
+# Standard Kibana Alert Rules for Application Monitoring
+
+## 1. Synthetic Application Availability
+
+**Purpose**
+
+Detect application outages and availability degradation using Kibana Synthetics.
+
+**Rule Type**
+Synthetics Monitor Status
+
+**Warning Threshold**
+
+* Monitor fails **2 out of the last 3 checks**
+
+**Critical Threshold**
+
+* Monitor fails **3 out of the last 5 checks**
+
+**Evaluation Window**
+15 Minutes
+
+**Check Interval**
+5 Minutes
+
+**Severity**
+Warning / Critical
+
+**Action**
+
+* Warning: Send email notification to Application Support Team.
+* Critical: Send email notification and automatically create an Incident (Helix/ServiceNow).
+
+**Recovery**
+Alert automatically recovers when the monitor reports **Up**.
+
+**How it Works**
+
+Kibana evaluates the latest synthetic monitor executions every five minutes. If the monitor fails twice within the last three executions, a Warning alert is generated. If it fails three times within the last five executions, a Critical alert is generated. The alert automatically recovers once the monitor successfully completes.
+
+---
+
+# 2. CPU Utilisation
+
+**Purpose**
+
+Detect sustained high CPU utilisation before application performance is impacted.
+
+**Rule Type**
+Metric Threshold
+
+**Metric**
+`system.cpu.total.norm.pct`
+
+**Warning Threshold**
+Greater than **70%**
+
+**Critical Threshold**
+Greater than **90%**
+
+**Evaluation Window**
+10 Minutes
+
+**Check Interval**
+1 Minute
+
+**Consecutive Runs**
+
+* Warning: 2
+* Critical: 3
+
+**Severity**
+Warning / Critical
+
+**Action**
+
+* Warning: Email notification.
+* Critical: Create Incident and notify On-Call Team.
+
+**Recovery**
+Alert automatically recovers when CPU utilisation falls below the configured threshold.
+
+**How it Works**
+
+Every minute Kibana evaluates CPU utilisation for the previous ten minutes. A Warning alert is generated when CPU usage remains above 70% for two consecutive evaluations. A Critical alert is generated when CPU usage remains above 90% for three consecutive evaluations.
+
+---
+
+# 3. Memory Utilisation
+
+**Purpose**
+
+Detect sustained memory utilisation before memory pressure affects application performance.
+
+**Rule Type**
+Metric Threshold
+
+**Metric**
+`system.memory.actual.used.pct`
+
+**Warning Threshold**
+Greater than **70%**
+
+**Critical Threshold**
+Greater than **90%**
+
+**Evaluation Window**
+10 Minutes
+
+**Check Interval**
+1 Minute
+
+**Consecutive Runs**
+
+* Warning: 2
+* Critical: 3
+
+**Severity**
+Warning / Critical
+
+**Action**
+
+* Warning: Email notification.
+* Critical: Create Incident and notify On-Call Team.
+
+**Recovery**
+Alert automatically recovers when memory utilisation returns below the configured threshold.
+
+**How it Works**
+
+Kibana evaluates memory utilisation every minute over the previous ten minutes. The alert is triggered only when the threshold is exceeded for the configured number of consecutive evaluations.
+
+---
+
+# 4. Filesystem Usage
+
+**Purpose**
+
+Detect disk utilisation before the application or operating system runs out of available storage.
+
+**Rule Type**
+Metric Threshold
+
+**Metric**
+`system.filesystem.used.pct`
+
+**Warning Threshold**
+Greater than **80%**
+
+**Critical Threshold**
+Greater than **90%**
+
+**Evaluation Window**
+10 Minutes
+
+**Check Interval**
+1 Minute
+
+**Consecutive Runs**
+
+* Warning: 2
+* Critical: 3
+
+**Severity**
+Warning / Critical
+
+**Action**
+
+* Warning: Email notification.
+* Critical: Create Incident and notify On-Call Team.
+
+**Recovery**
+Alert automatically recovers when filesystem utilisation falls below the configured threshold.
+
+**How it Works**
+
+Kibana evaluates filesystem usage every minute over the previous ten minutes. If usage remains above 80% for two consecutive evaluations, a Warning alert is generated. If usage remains above 90% for three consecutive evaluations, a Critical alert is generated.
+
+---
+
+# 5. SQL Server Service Status
+
+**Purpose**
+
+Detect when the SQL Server service stops or becomes unavailable.
+
+**Rule Type**
+Elasticsearch Query Rule
+
+**Example Query**
+
+```kql
+system.service.name:"MSSQLSERVER" AND system.service.state:"stopped"
+```
+
+**Warning Threshold**
+Service stopped for 2 consecutive evaluations.
+
+**Critical Threshold**
+Service stopped for 3 consecutive evaluations.
+
+**Evaluation Window**
+5 Minutes
+
+**Check Interval**
+1 Minute
+
+**Severity**
+Warning / Critical
+
+**Action**
+
+* Warning: Email notification.
+* Critical: Create Incident and notify On-Call Team.
+
+**Recovery**
+Alert automatically recovers when the SQL Server service returns to the Running state.
+
+**How it Works**
+
+Kibana executes the query every minute. If the SQL Server service remains stopped for two consecutive evaluations, a Warning alert is generated. If it remains stopped for three consecutive evaluations, a Critical alert is generated.
+
+---
+
+# 6. Database Critical Errors
+
+**Purpose**
+
+Detect critical SQL Server database errors that may impact application availability.
+
+**Rule Type**
+Log Threshold / Elasticsearch Query Rule
+
+**Example Query**
+
+```kql
+event.dataset:(mssql.errorlog OR sqlserver.errorlog)
+AND
+(log.level:(error OR critical))
+```
+
+**Warning Threshold**
+At least one critical database error detected within ten minutes.
+
+**Critical Threshold**
+Three or more critical database errors within ten minutes.
+
+**Evaluation Window**
+10 Minutes
+
+**Check Interval**
+1 Minute
+
+**Severity**
+Warning / Critical
+
+**Action**
+
+* Warning: Email notification.
+* Critical: Create Incident and notify On-Call Team.
+
+**Recovery**
+Alert automatically recovers when no matching critical errors are detected during the evaluation window.
+
+**How it Works**
+
+Kibana searches SQL Server error log events every minute. A Warning alert is generated when one critical database error is detected. A Critical alert is generated when multiple critical database errors are detected within the same evaluation period.
+
+---
+
+# 7. TLS Certificate Expiry
+
+**Purpose**
+
+Notify support teams before application certificates expire.
+
+**Rule Type**
+TLS Certificate Rule
+
+**Warning Threshold**
+Certificate expires within **30 days**.
+
+**Critical Threshold**
+Certificate expires within **7 days**.
+
+**Evaluation Interval**
+Every 6 Hours
+
+**Severity**
+Warning / Critical
+
+**Action**
+
+* Warning: Email notification.
+* Critical: Create Incident and notify On-Call Team.
+
+**Recovery**
+Alert automatically recovers after the certificate has been renewed.
+
+**How it Works**
+
+Kibana periodically checks the TLS certificate presented by the monitored endpoint. A Warning alert is generated when fewer than 30 days remain before expiry. A Critical alert is generated when fewer than 7 days remain. Once the certificate is renewed, the alert automatically transitions to the Recovered state.
+
+---
+
+# Standard Email Template (Active Alert)
+
+**Subject**
+
+```
+[{{alert.actionGroupName}}] {{rule.name}} | {{context.group}}
+```
+
+**Email Body**
+
+```text
+APPLICATION MONITORING ALERT
+
+====================================================
+
+Alert Name      : {{rule.name}}
+Severity        : {{alert.actionGroupName}}
+Status          : {{context.alertState}}
+Host/Resource   : {{context.group}}
+Time Detected   : {{context.date}}
+
+Reason
+----------------------------------------------------
+{{context.reason}}
+
+Metric
+----------------------------------------------------
+Current Value   : {{context.value}}
+Threshold       : {{context.conditions}}
+
+Recommended Actions
+----------------------------------------------------
+1. Verify the affected application or server.
+2. Review Kibana dashboards and logs.
+3. Check for recent deployments or configuration changes.
+4. Perform corrective actions if required.
+5. Escalate according to the support process.
+
+Kibana Rule
+----------------------------------------------------
+{{rule.url}}
+
+This is an automated notification generated by Kibana Alerting.
+```
+
+---
+
+# Recovery Email Template
+
+**Subject**
+
+```
+[RECOVERED] {{rule.name}} | {{context.group}}
+```
+
+**Email Body**
+
+```text
+APPLICATION MONITORING RECOVERY
+
+====================================================
+
+Alert Name      : {{rule.name}}
+Status          : Recovered
+Host/Resource   : {{context.group}}
+Recovered Time  : {{context.date}}
+
+Details
+----------------------------------------------------
+{{context.reason}}
+
+The monitored condition has returned to normal and no further action is currently required.
+
+Kibana Rule
+----------------------------------------------------
+{{rule.url}}
+
+This is an automated recovery notification generated by Kibana Alerting.
+```
+
+These templates are designed to work with Kibana's built-in action variables and provide a consistent format for CPU, Memory, Filesystem, SQL Server, Database Error, Certificate, and Synthetics alerts.
