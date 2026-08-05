@@ -1,0 +1,20 @@
+if (doc['monitor.tags'].size() == 0) {
+    return;
+}
+
+def allowed = new HashSet([
+    "Corporate",
+    "Customer Business",
+    "Energy Networks",
+    "Renewables",
+    "sp.com"
+]);
+
+def emitted = new HashSet();
+
+for (def tag : doc['monitor.tags']) {
+    if (allowed.contains(tag) && !emitted.contains(tag)) {
+        emit(tag);
+        emitted.add(tag);
+    }
+}
