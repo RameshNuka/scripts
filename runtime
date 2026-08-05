@@ -1,0 +1,12 @@
+if (doc.containsKey('monitor.tags') && !doc['monitor.tags'].empty) {
+    for (String tag : doc['monitor.tags']) {
+        if (tag.equals("Corporate")) {
+            emit("Corporate");
+            return;
+        }
+        if (tag.equals("Customer Business")) {
+            emit("Customer Business");
+            return;
+        }
+    }
+}
