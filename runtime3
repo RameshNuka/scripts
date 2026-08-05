@@ -1,0 +1,35 @@
+if (doc['monitor.tags'].size() == 0) {
+    return;
+}
+
+for (String tag : doc['monitor.tags']) {
+    if (tag == 'Corporate' ||
+        tag == 'Customer Business' ||
+        tag == 'Energy Networks' ||
+        tag == 'Renewables' ||
+        tag == 'sp.com') {
+        emit(tag);
+    }
+}
+
+
+
+#####
+
+def tags = params['_source']['monitor.tags'];
+
+if (tags == null) {
+    return;
+}
+
+for (def tag : tags) {
+    if (tag == 'Corporate' ||
+        tag == 'Customer Business' ||
+        tag == 'Energy Networks' ||
+        tag == 'Renewables' ||
+        tag == 'sp.com') {
+        emit(tag);
+    }
+}
+
+###
