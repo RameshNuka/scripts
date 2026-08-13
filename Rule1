@@ -1,0 +1,56 @@
+🚨 [{{context.severity}}] High CPU Alert: {{context.hostName}} is at {{context.value}}%
+
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; color: #333333; line-height: 1.5; }
+    .container { max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 6px; overflow: hidden; }
+    .header { background-color: #d9534f; color: #ffffff; padding: 15px 20px; font-size: 18px; font-weight: bold; }
+    .content { padding: 20px; background-color: #ffffff; }
+    .table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    .table td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
+    .table td.label { font-weight: bold; width: 35%; color: #555555; }
+    .button { display: inline-block; background-color: #007aaa; color: #ffffff; padding: 10px 18px; text-decoration: none; border-radius: 4px; margin-top: 20px; font-weight: bold; }
+    .footer { background-color: #f8f9fa; padding: 12px 20px; font-size: 12px; color: #777777; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      ⚠️ High CPU Utilization Alert
+    </div>
+    <div class="content">
+      <p>Kibana has detected that CPU usage on host <strong>{{context.hostName}}</strong> has exceeded the warning threshold.</p>
+      
+      <table class="table">
+        <tr>
+          <td class="label">Host Name:</td>
+          <td>{{context.hostName}}</td>
+        </tr>
+        <tr>
+          <td class="label">Current Usage:</td>
+          <td><strong style="color: #d9534f;">{{context.value}}%</strong></td>
+        </tr>
+        <tr>
+          <td class="label">Threshold:</td>
+          <td>{{context.threshold}}%</td>
+        </tr>
+        <tr>
+          <td class="label">Triggered At:</td>
+          <td>{{date}}</td>
+        </tr>
+        <tr>
+          <td class="label">Rule Name:</td>
+          <td>{{rule.name}}</td>
+        </tr>
+      </table>
+
+      <a href="{{kibanaBaseUrl}}/app/metrics/link/host/{{context.hostName}}" class="button" target="_blank">View Host in Kibana</a>
+    </div>
+    <div class="footer">
+      Generated automatically by Kibana Alerting System.
+    </div>
+  </div>
+</body>
+</html>
