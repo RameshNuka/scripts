@@ -1,0 +1,16 @@
+FROM synthetics-*
+| WHERE @timestamp >= NOW() - 60 days
+| WHERE http.response.status_code >= 400
+| STATS
+    current_30d = COUNT(*) WHERE @timestamp >= NOW() - 30 days,
+    previous_30d = COUNT(*) WHERE @timestamp < NOW() - 30 days
+  BY monitor.name, http.response.status_code
+| EVAL difference = current_30d - previous_30d
+| EVAL change_pct =
+    CASE(
+      previous_30d > 0,
+      ROUND((current_30d - previous_30d) * 100.0 / previous_30d, 1),
+      NULL
+    )
+| SORT current_30d DESC
+| LIMIT 100
