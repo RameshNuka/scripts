@@ -1,0 +1,21 @@
+FROM metrics-ess_billing.billing-*
+| STATS
+    total_ECUs_consumed = SUM(ess.billing.total_ecu),
+    ECUs_7d = SUM(ess.billing.total_ecu)
+      WHERE @timestamp >= NOW() - 7 DAYS,
+    ECUs_30d = SUM(ess.billing.total_ecu)
+      WHERE @timestamp >= NOW() - 30 DAYS
+| EVAL
+    remaining_ECUs = 100000 - total_ECUs_consumed,
+    daily_rate_7d = ECUs_7d / 7.0,
+    daily_rate_30d = ECUs_30d / 30.0
+| EVAL
+    days_left_7d = remaining_ECUs / daily_rate_7d,
+    days_left_30d = remaining_ECUs / daily_rate_30d
+| KEEP
+    total_ECUs_consumed,
+    remaining_ECUs,
+    daily_rate_7d,
+    daily_rate_30d,
+    days_left_7d,
+    days_left_30d
