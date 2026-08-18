@@ -1,0 +1,21 @@
+FROM metrics-ess_billing.billing-*
+| STATS
+    total_ecu_used = SUM(ess.billing.total_ecu),
+    ecu_used_last_7_days = SUM(ess.billing.total_ecu)
+      WHERE @timestamp >= NOW() - 7 DAYS,
+    ecu_used_last_30_days = SUM(ess.billing.total_ecu)
+      WHERE @timestamp >= NOW() - 30 DAYS
+| EVAL
+    ecu_remaining = 100000 - total_ecu_used,
+    avg_daily_ecu_7_days = ecu_used_last_7_days / 7.0,
+    avg_daily_ecu_30_days = ecu_used_last_30_days / 30.0
+| EVAL
+    estimated_days_remaining_7d = ecu_remaining / avg_daily_ecu_7_days,
+    estimated_days_remaining_30d = ecu_remaining / avg_daily_ecu_30_days
+| KEEP
+    total_ecu_used,
+    ecu_remaining,
+    avg_daily_ecu_7_days,
+    avg_daily_ecu_30_days,
+    estimated_days_remaining_7d,
+    estimated_days_remaining_30d
