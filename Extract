@@ -1,0 +1,30 @@
+
+Steps to extract the data and provide in csv or json format to an individual from kibana
+
+For a one-off request where you need to extract Elasticsearch data and provide it to an individual, I’d use Discover for CSV and Discover/Dev Tools for JSON, depending on volume.
+
+Option 1 — Export CSV from Kibana Discover
+Go to Kibana → Discover.
+
+Select the correct Data View / index.
+
+Set an absolute time range, for example:
+01-Aug-2026 00:00 → 31-Aug-2026 23:59
+
+Apply the required KQL filters, for example:
+
+monitor.name : "Application-A"
+Add only the fields the individual actually needs, for example:
+
+@timestamp
+host.name
+source.ip
+event.action
+message
+Validate the records and record count.
+
+Preferably Save the Discover session so the exact query, filters, columns and sorting are retained.
+
+Select Export → CSV / Generate CSV.
+
+When generation completes, download the CSV from the notification or Stack Management → Reporting.
