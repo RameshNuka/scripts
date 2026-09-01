@@ -1,0 +1,12 @@
+FROM .alerts-*
+| EVAL Business_Tag =
+    CASE(
+        MV_CONTAINS(monitor.tags, "Corporate"), "Corporate",
+        MV_CONTAINS(monitor.tags, "Customer Business"), "Customer Business",
+        MV_CONTAINS(monitor.tags, "Energy Networks"), "Energy Networks",
+        MV_CONTAINS(monitor.tags, "Renewables"), "Renewables",
+        MV_CONTAINS(monitor.tags, "sp.com"), "sp.com",
+        "Other"
+    )
+| STATS Alerts = COUNT(*) BY Business_Tag
+| SORT Alerts DESC
