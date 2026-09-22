@@ -1,0 +1,18 @@
+✅ [RECOVERED] {{rule.name}} on {{context.host.hostname}}
+
+{{rule.name}} has recovered.
+
+Time: {{#FormatDate}} {{date}} ; Europe/London ; DD/MM/YYYY HH:mm:ss {{/FormatDate}}
+
+Status:
+Recovered - the configured alert condition is no longer met.
+
+Details:
+- Host: {{context.host.hostname}}
+- Metric: system.memory.actual.used.pct
+- Current value: {{context.value}}
+- Alert ID: {{alert.uuid}}
+- Rule ID: {{rule.id}}
+
+No further action is required unless the alert reoccurs.
+
