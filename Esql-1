@@ -1,0 +1,8 @@
+
+FROM synthetics-*
+| STATS availability = AVG(`summary.up`) BY `monitor.name`
+| WHERE availability > 0
+| EVAL Availability = ROUND(availability * 100, 2)
+| RENAME `monitor.name` AS Service_Name
+| KEEP Service_Name, Availability
+| SORT Availability ASC
