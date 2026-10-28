@@ -1,0 +1,114 @@
+Based on the screenshot, the application team is requesting two permissions for the Elasticsearch API key you already provided:
+
+1. Cluster health monitoring: Add the `monitor` cluster privilege to allow calls such as `GET /_cluster/health`.
+2. Index read access: Allow reading `logs-kubernetes.container_logs-openshift`.
+
+The existing API key has `"cluster": []`, which explains the cluster health authorization failure. It already has `"names": ["*"]` and `"privileges": ["read"]`, so the requested index should already be covered, assuming the API key owner has that access.
+
+## 1. Updated API key permissions (recommended)
+
+For least-privilege access, use:
+
+```
+
+{
+  "read-only-role": {
+    "cluster": [
+      "monitor"
+    ],
+    "indices": [
+      {
+        "names": [
+          "logs-kubernetes.container_logs-openshift"
+        ],
+        "privileges": [
+          "read"
+        ],
+        "allow_restricted_indices": false
+      }
+    ],
+    "applications": [],
+    "run_as": [],
+    "metadata": {},
+    "transient_metadata": {
+      "enabled": true
+    }
+  }
+}
+
+```
+
+If the team still requires access to all non-restricted indices, keep `"names": ["*"]` instead. In that case, the only necessary change to the permissions shown in your screenshot is `"cluster": ["monitor"]`.
+
+The `monitor` privilege is sufficient for cluster health and is read-only, although it also permits other cluster monitoring operations.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://www.elastic.co\&sz=32)
+
+Elasticsearch API documentation+1
+
+
+
+## 2. Update the existing API key
+
+You can update an existing API key without generating a new key, provided you authenticate as its owner with the required permissions.
+
+In Kibana Dev Tools:
+
+```
+
+PUT /_security/api_key/<API_KEY_ID>
+{
+  "role_descriptors": {
+    "read-only-role": {
+      "cluster": ["monitor"],
+      "indices": [
+        {
+          "names": [
+            "logs-kubernetes.container_logs-openshift"
+          ],
+          "privileges": ["read"],
+          "allow_restricted_indices": false
+        }
+      ]
+    }
+  }
+}
+
+```
+
+Important: The update requires the API key owner's credentials and at least `manage_own_api_key`. The key's effective privileges are limited by its owner's permissions.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://www.elastic.co\&sz=32)
+
+Elasticsearch API documentation (v8)
+
+
+
+## 3. Test the permissions
+
+Ask the application team to test using the API key:
+
+```
+
+GET /_cluster/health
+
+GET /logs-kubernetes.container_logs-openshift/_search
+{
+  "size": 1
+}
+
+```
+
+Both should return successful responses when the permissions and index name are correct.
+
+## 4. Response to the application team
+
+The existing API key already provides read access to indices through the wildcard (`*`) configuration.
+
+We can add the Elasticsearch `monitor` cluster privilege to support cluster health checks.
+
+For security best practices, I recommend restricting index access to `logs-kubernetes.container_logs-openshift` if no other indices are required.
+
+Once the API key permissions are updated, please validate both the cluster health endpoint and the index search API.
+
+My recommendation: Add `monitor` at cluster level and restrict index permissions to the required index rather than retaining wildcard access, unless the application genuinely needs to query additional indices.
