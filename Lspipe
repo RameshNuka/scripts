@@ -1,0 +1,268 @@
+
+## **1. Current comparison results**
+
+Com-LMA (PROD)
+
+# **61**
+
+Total pipelines
+
+Non-LMA (DEV)
+
+# **58**
+
+Total pipelines
+
+Matched configurations
+
+**19**
+
+Different configurations
+
+**34**
+
+Missing in DEV
+
+**8**
+
+DEV-only pipelines
+
+**5**
+
+Total pipelines requiring review
+
+# **42**
+
+You do not need to review all 61 production pipelines individually. We need to focus on the 8 missing pipelines and the 34 pipelines with configuration differences.
+
+## **2. Missing pipelines in Non-LMA**
+
+| Pipeline ID                      | Action                 |
+| -------------------------------- | ---------------------- |
+| `beats-cds-logs`                 | Create                 |
+| `beats-power-bi`                 | Create                 |
+| `beats-s3-output`                | Create with DEV output |
+| `sqs-aws-eks-control-plane-logs` | Create                 |
+| `sqs-aws-fsx`                    | Create                 |
+| `sqs-aws-glue-logs`              | Create                 |
+| `sqs-aws-guardduty-logs`         | Create                 |
+| `sqs-common-integration-output`  | Create with DEV output |
+
+Pay particular attention to `beats-s3-output` and `sqs-common-integration-output`, as these may be shared downstream pipelines used by multiple other pipelines.
+
+## **3. DEV-only pipelines — retain**
+
+These five pipelines should remain in Non-LMA unless there is a specific requirement to remove them.
+
+| Pipeline ID         | Action |
+| ------------------- | ------ |
+| `beats-audit`       | Retain |
+| `beats-sre-logs`    | Retain |
+| `sqs-exchange-logs` | Retain |
+| `sqs-non-lma-test`  | Retain |
+| `sqs-threat-intel`  | Retain |
+
+After adding all eight missing pipelines, Non-LMA should have **66 pipelines**, assuming no pipelines are removed.
+
+## **4. Next step — generate individual configuration files**
+
+Instead of comparing the entire JSON response, we will extract individual pipeline configurations into separate PROD and DEV directories.
+
+Execute the following on your Mac.
+
+```
+cd ~/lma-pipeline-comparison
+
+umask 077
+
+mkdir -p prod-pipelines
+mkdir -p dev-pipelines
+mkdir -p pipeline-differences
+mkdir -p missing-pipelines
+```
+
+Copy and paste the entire Perl script below:
+
+```
+perl -MJSON::PP <<'PERL'
+use strict;
+use warnings;
+
+sub load_json {
+    my ($file) = @_;
+    open my $fh, '<:raw', $file or die "$file: $!";
+    local $/;
+    return decode_json(<$fh>);
+}
+
+sub save_file {
+    my ($file, $content) = @_;
+
+    open my $fh, '>:encoding(UTF-8)', $file
+        or die "$file: $!";
+
+    print $fh $content;
+    close $fh;
+}
+
+my $prod = load_json("com-lma-prod-fixed.json");
+my $dev  = load_json("non-lma-dev-fixed.json");
+
+for my $id (sort keys %$prod) {
+
+    die "Unexpected pipeline ID: $id\n"
+        unless $id =~ /\A[A-Za-z0-9_-]+\z/;
+
+    save_file(
+        "prod-pipelines/$id.conf",
+        $prod->{$id}{pipeline}
+    );
+
+    unless (exists $dev->{$id}) {
+
+        save_file(
+            "missing-pipelines/$id.conf",
+            $prod->{$id}{pipeline}
+        );
+    }
+}
+
+for my $id (sort keys %$dev) {
+
+    die "Unexpected pipeline ID: $id\n"
+        unless $id =~ /\A[A-Za-z0-9_-]+\z/;
+
+    save_file(
+        "dev-pipelines/$id.conf",
+        $dev->{$id}{pipeline}
+    );
+}
+
+print "PROD configurations exported: ",
+    scalar(keys %$prod), "\n";
+
+print "DEV configurations exported: ",
+    scalar(keys %$dev), "\n";
+
+print "Pipeline extraction completed.\n";
+PERL
+```
+
+## **5. Generate differences for all 34 pipelines automatically**
+
+Execute:
+
+```
+for file in prod-pipelines/*.conf; do
+
+    name=$(basename "$file")
+
+    if [ -f "dev-pipelines/$name" ]; then
+
+        if ! cmp -s "$file" "dev-pipelines/$name"; then
+
+            diff -u \
+                "dev-pipelines/$name" \
+                "$file" \
+                > "pipeline-differences/${name%.conf}.diff"
+
+        fi
+
+    fi
+
+done
+```
+
+Check the generated files:
+
+```
+ls -lrt pipeline-differences/
+```
+
+Check the number of difference files:
+
+```
+ls pipeline-differences/*.diff | wc -l
+```
+
+Expected result based on your comparison:
+
+```
+34
+```
+
+## **6. Expected directory structure**
+
+**lma-pipeline-comparison**
+
+**prod-pipelines/**
+
+61 production configuration files
+
+**dev-pipelines/**
+
+58 development configuration files
+
+**pipeline-differences/**
+
+34 configuration difference files
+
+**missing-pipelines/**
+
+8 missing pipeline configurations
+
+com-lma-prod.json
+
+non-lma-dev.json
+
+com-lma-prod-fixed.json
+
+non-lma-dev-fixed.json
+
+## **7. Compare pipelines using VS Code**
+
+You already have VS Code installed, as shown in your earlier screenshot.
+
+Open the comparison directory:
+
+```
+open -a "Visual Studio Code" \
+    ~/lma-pipeline-comparison
+```
+
+For example, compare `beats-filebeat-output`:
+
+```
+code --diff \
+dev-pipelines/beats-filebeat-output.conf \
+prod-pipelines/beats-filebeat-output.conf
+```
+
+If the `code` command is unavailable, open both files through VS Code and use **Select for Compare → Compare with Selected**.
+
+## **8. Remaining implementation plan**
+
+| Activity                                   | Status    |
+| ------------------------------------------ | --------- |
+| Export PROD pipelines                      | Completed |
+| Export DEV pipelines                       | Completed |
+| Fix JSON formatting                        | Completed |
+| Compare pipeline inventory                 | Completed |
+| Identify missing pipelines                 | Completed |
+| Identify different configurations          | Completed |
+| Generate individual configuration files    | Pending   |
+| Compare filter blocks                      | Pending   |
+| Preserve DEV-specific output configuration | Pending   |
+| Take pre-change snapshot                   | Pending   |
+| Generate bulk PUT requests                 | Pending   |
+| Update Non-LMA pipelines                   | Pending   |
+| Validate ingestion                         | Pending   |
+| Take new Logstash snapshot                 | Pending   |
+| Update startup object library              | Pending   |
+| Raise MR                                   | Pending   |
+
+**Important:** The 34 different pipelines are not necessarily 34 pipelines requiring filter changes. Some may differ only because of environment-specific inputs, outputs or formatting. Pipeline settings have not yet been compared separately.
+
+Complete Steps 4 and 5 first. After that, we can automate the next stage of comparing filters separately from inputs and outputs, reducing the manual effort further.
+
+All commands provided above operate locally. Nothing will be changed in IBM Com-LMA PROD or Non-LMA DEV.
