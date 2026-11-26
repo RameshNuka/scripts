@@ -1,0 +1,54 @@
+perl -MJSON::PP <<'PERL'
+use strict;
+use warnings;
+
+sub load_json {
+    my ($file) = @_;
+    open my $fh, '<:raw', $file or die "$file: $!";
+    local $/;
+    return decode_json(<$fh>);
+}
+
+my $prod = load_json("com-lma-prod-fixed.json");
+my $dev  = load_json("non-lma-dev-fixed.json");
+
+my (@missing, @dev_only, @different, @matched);
+
+for my $id (sort keys %$prod) {
+    if (!exists $dev->{$id}) {
+        push @missing, $id;
+    }
+    elsif ($prod->{$id}{pipeline}
+        ne $dev->{$id}{pipeline}) {
+        push @different, $id;
+    }
+    else {
+        push @matched, $id;
+    }
+}
+
+for my $id (sort keys %$dev) {
+    push @dev_only, $id
+        unless exists $prod->{$id};
+}
+
+print "\n===== COMPARISON SUMMARY =====\n";
+print "Total PROD pipelines: ", scalar(keys %$prod), "\n";
+print "Total DEV pipelines: ", scalar(keys %$dev), "\n";
+print "Missing in DEV: ", scalar(@missing), "\n";
+print "DEV only: ", scalar(@dev_only), "\n";
+print "Different: ", scalar(@different), "\n";
+print "Matched: ", scalar(@matched), "\n";
+
+print "\n===== MISSING IN DEV =====\n";
+print "$_\n" for @missing;
+
+print "\n===== DEV ONLY =====\n";
+print "$_\n" for @dev_only;
+
+print "\n===== DIFFERENT CONFIGURATIONS =====\n";
+print "$_\n" for @different;
+
+print "\n===== MATCHED CONFIGURATIONS =====\n";
+print "$_\n" for @matched;
+PERL
