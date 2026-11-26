@@ -1,0 +1,59 @@
+perl -MJSON::PP <<'PERL'
+use strict;
+use warnings;
+
+my $json = JSON::PP->new->utf8->canonical->pretty;
+my $encoder = JSON::PP->new->utf8->allow_nonref;
+
+foreach my $file (
+    "com-lma-prod.json",
+    "non-lma-dev.json"
+) {
+    open my $fh, '<:encoding(UTF-8)', $file
+        or die "Cannot open $file: $!";
+
+    local $/;
+    my $content = <$fh>;
+    close $fh;
+
+    my $count = $content =~ s/"""(.*?)"""/
+        JSON::PP->new->allow_nonref->encode($1)
+    /gse;
+
+    my $data;
+
+    eval {
+        $data = JSON::PP->new->decode($content);
+    };
+
+    if ($@) {
+        print "$file : JSON conversion failed\n";
+        next;
+    }
+
+    die "Invalid pipeline export: $file\n"
+        unless ref($data) eq 'HASH';
+
+    for my $id (keys %$data) {
+        die "Invalid pipeline entry in $file\n"
+            unless ref($data->{$id}) eq 'HASH'
+            && defined $data->{$id}{pipeline}
+            && !ref($data->{$id}{pipeline});
+    }
+
+    my $output = $file;
+    $output =~ s/\.json$/-fixed.json/;
+
+    open my $out, '>:raw', $output
+        or die "Cannot create $output: $!";
+
+    print $out $json->encode($data);
+    close $out;
+
+    print "\nFile: $file\n";
+    print "Converted strings: $count\n";
+    print "Total pipelines: ", scalar(keys %$data), "\n";
+    print "Output: $output\n";
+    print "Status: SUCCESS\n";
+}
+PERL
