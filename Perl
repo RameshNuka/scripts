@@ -1,0 +1,69 @@
+perl -MJSON::PP <<'PERL'
+use strict;
+use warnings;
+
+sub load_json {
+    my ($file) = @_;
+    open my $fh, '<:raw', $file or die "$file: $!";
+    local $/;
+    my $data = decode_json(<$fh>);
+    close $fh;
+
+    die "Invalid pipeline export: $file\n"
+        unless ref($data) eq 'HASH';
+
+    for my $id (keys %$data) {
+        die "Invalid pipeline entry: $id\n"
+            unless ref($data->{$id}) eq 'HASH'
+            && defined $data->{$id}{pipeline};
+    }
+
+    return $data;
+}
+
+my $prod = load_json("com-lma-prod.json");
+my $dev  = load_json("non-lma-dev.json");
+
+my @missing;
+my @dev_only;
+my @different;
+my @matched;
+
+foreach my $id (sort keys %$prod) {
+    if (!exists $dev->{$id}) {
+        push @missing, $id;
+    }
+    elsif ($prod->{$id}{pipeline}
+        ne $dev->{$id}{pipeline}) {
+        push @different, $id;
+    }
+    else {
+        push @matched, $id;
+    }
+}
+
+foreach my $id (sort keys %$dev) {
+    push @dev_only, $id
+        unless exists $prod->{$id};
+}
+
+print "\n===== PIPELINE COMPARISON =====\n";
+print "Total PROD pipelines: ", scalar(keys %$prod), "\n";
+print "Total DEV pipelines: ", scalar(keys %$dev), "\n";
+print "Missing in DEV: ", scalar(@missing), "\n";
+print "DEV only: ", scalar(@dev_only), "\n";
+print "Different configurations: ", scalar(@different), "\n";
+print "Matched configurations: ", scalar(@matched), "\n";
+
+print "\n===== MISSING IN DEV =====\n";
+print "$_\n" for @missing;
+
+print "\n===== DEV ONLY =====\n";
+print "$_\n" for @dev_only;
+
+print "\n===== DIFFERENT CONFIGURATIONS =====\n";
+print "$_\n" for @different;
+
+print "\n===== MATCHED CONFIGURATIONS =====\n";
+print "$_\n" for @matched;
+PERL
