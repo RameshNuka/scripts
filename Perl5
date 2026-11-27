@@ -1,0 +1,335 @@
+
+You have already completed the pipeline inventory comparison. Now we need to determine exactly which existing pipelines require changes and prepare the eight missing pipelines for Non-LMA.
+
+## **1. Implementation plan**
+
+| Activity                              | Status    |
+| ------------------------------------- | --------- |
+| Export PROD and DEV pipelines         | Completed |
+| Compare pipeline inventory            | Completed |
+| Identify 8 missing pipelines          | Completed |
+| Identify 34 different pipelines       | Completed |
+| Compare filters separately            | Do now    |
+| Prepare 8 missing pipelines           | Pending   |
+| Update existing pipeline filters      | Pending   |
+| Validate pipeline routing             | Pending   |
+| Create pre-change snapshot and deploy | Pending   |
+| Validate data ingestion               | Pending   |
+| Create final snapshot                 | Pending   |
+| Update startup object library         | Pending   |
+| Raise merge request                   | Pending   |
+
+## **2. Automatically compare input, filter and output sections**
+
+We will use Perl since it is already working on your Mac. No additional software installation is required.
+
+The next script will classify the 34 different pipelines into:
+
+- **FILTER_CHANGED:** Review and update the filter configuration.
+- **INPUT_OUTPUT_ONLY:** Filters match; review routing changes and ignore intentional environment-specific differences.
+- **MANUAL_REVIEW:** Configuration formatting prevents reliable automatic section extraction.
+
+It will also generate a CSV report so that you can track the required changes.
+
+### **Step 2.1: Navigate to your existing directory**
+
+```
+cd ~/lma-pipeline-comparison
+
+umask 077
+```
+
+### **Step 2.2: Create the comparison script**
+
+Copy and paste this entire block into your Mac terminal:
+
+```
+cat > compare_sections.pl <<'PERL'
+use strict;
+use warnings;
+use JSON::PP;
+
+sub load_json {
+    my ($file) = @_;
+    open my $fh, '<:raw', $file or die "$file: $!";
+    local $/;
+    return decode_json(<$fh>);
+}
+
+sub sections {
+    my ($config) = @_;
+
+    $config =~ s/\r\n/\n/g;
+
+    my %result = (
+        input  => [],
+        filter => [],
+        output => []
+    );
+
+    my $section;
+    my @block;
+    my $found = 0;
+
+    for my $line (split /\n/, $config) {
+
+        if (!defined $section) {
+
+            next if $line =~ /^\s*(#.*)?$/;
+
+            if ($line =~ /^(input|filter|output)\s*\{\s*(?:#.*)?$/) {
+
+                $section = $1;
+                @block = ($line);
+                $found++;
+
+            } else {
+                return undef;
+            }
+
+        } else {
+
+            if ($line =~ /^\}\s*(?:#.*)?$/) {
+
+                push @block, $line;
+
+                push @{$result{$section}},
+                    join("\n", @block);
+
+                undef $section;
+                @block = ();
+
+            } elsif ($line =~ /^[^ \t#]/) {
+
+                return undef;
+
+            } else {
+
+                push @block, $line;
+
+            }
+        }
+    }
+
+    return undef if defined $section || !$found;
+
+    return \%result;
+}
+
+my $prod = load_json("com-lma-prod-fixed.json");
+my $dev  = load_json("non-lma-dev-fixed.json");
+
+open my $csv, '>:encoding(UTF-8)',
+    'section_comparison.csv' or die $!;
+
+print $csv "Pipeline_ID,Status,Input,Filter,Output\n";
+
+my %all = map { $_ => 1 } (keys %$prod, keys %$dev);
+my %summary;
+
+for my $id (sort keys %all) {
+
+    die "Unexpected pipeline ID: $id\n"
+        unless $id =~ /^[A-Za-z0-9_-]+$/;
+
+    my ($status, $input, $filter, $output) =
+        ('', 'N/A', 'N/A', 'N/A');
+
+    if (!exists $dev->{$id}) {
+
+        $status = 'MISSING_IN_DEV';
+
+    } elsif (!exists $prod->{$id}) {
+
+        $status = 'DEV_ONLY';
+
+    } elsif ($prod->{$id}{pipeline}
+        eq $dev->{$id}{pipeline}) {
+
+        $status = 'MATCHED';
+        ($input, $filter, $output) =
+            ('SAME', 'SAME', 'SAME');
+
+    } else {
+
+        my $p = sections($prod->{$id}{pipeline});
+        my $d = sections($dev->{$id}{pipeline});
+
+        if (!$p || !$d) {
+
+            $status = 'MANUAL_REVIEW';
+
+        } else {
+
+            $input = encode_json($p->{input})
+                eq encode_json($d->{input})
+                ? 'SAME' : 'DIFFERENT';
+
+            $filter = encode_json($p->{filter})
+                eq encode_json($d->{filter})
+                ? 'SAME' : 'DIFFERENT';
+
+            $output = encode_json($p->{output})
+                eq encode_json($d->{output})
+                ? 'SAME' : 'DIFFERENT';
+
+            if ($filter eq 'DIFFERENT') {
+
+                $status = 'FILTER_CHANGED';
+
+            } elsif ($input eq 'DIFFERENT'
+                || $output eq 'DIFFERENT') {
+
+                $status = 'INPUT_OUTPUT_ONLY';
+
+            } else {
+
+                $status = 'SECTION_TEXT_MATCHED';
+
+            }
+        }
+    }
+
+    print $csv join(",",
+        $id, $status, $input, $filter, $output), "\n";
+
+    $summary{$status}++;
+
+    print "$id : $status\n";
+}
+
+close $csv;
+
+print "\n===== COMPARISON SUMMARY =====\n";
+
+for my $status (sort keys %summary) {
+    print "$status : $summary{$status}\n";
+}
+
+print "\nReport: section_comparison.csv\n";
+PERL
+```
+
+### **Step 2.3: Execute the script**
+
+```
+perl compare_sections.pl
+```
+
+Open the generated report:
+
+```
+open section_comparison.csv
+```
+
+## **3. Expected comparison report**
+
+The report will look similar to this (illustrative results):
+
+| Pipeline ID           | Input | Filter    | Output    | Status            |
+| --------------------- | ----- | --------- | --------- | ----------------- |
+| beats-filebeat-output | Same  | Same      | Different | INPUT_OUTPUT_ONLY |
+| beats-apm             | Same  | Different | Same      | FILTER_CHANGED    |
+| beats-gitlab-logs     | Same  | Different | Different | FILTER_CHANGED    |
+| beats-aem-logs        | Same  | Same      | Same      | MATCHED           |
+| beats-cds-logs        | N/A   | N/A       | N/A       | MISSING_IN_DEV    |
+
+The script compares section text, not semantic equivalence. Comments and indentation changes within sections can still appear as differences. It deliberately sends nonstandard block layouts for manual review rather than guessing.
+
+## **4. Extract only the pipelines requiring filter review**
+
+Execute:
+
+```
+grep ',FILTER_CHANGED,' section_comparison.csv
+```
+
+To display only pipeline names:
+
+```
+grep ',FILTER_CHANGED,' section_comparison.csv \
+| cut -d, -f1
+```
+
+To identify pipelines where only inputs or outputs differ:
+
+```
+grep ',INPUT_OUTPUT_ONLY,' section_comparison.csv
+```
+
+To identify configurations requiring manual review:
+
+```
+grep ',MANUAL_REVIEW,' section_comparison.csv
+```
+
+This should significantly reduce the number of pipelines you need to compare manually.
+
+## **5. Prepare the eight missing pipelines**
+
+Create a working directory and copy the missing configurations into it.
+
+```
+mkdir -p updated-dev-pipelines
+
+cp missing-pipelines/*.conf updated-dev-pipelines/
+```
+
+Open the directory in VS Code:
+
+```
+open -a "Visual Studio Code" updated-dev-pipelines/
+```
+
+You should have the following eight files:
+
+| Pipeline                         | Priority             |
+| -------------------------------- | -------------------- |
+| `beats-s3-output`                | High – shared output |
+| `sqs-common-integration-output`  | High – shared output |
+| `beats-cds-logs`                 | Processing           |
+| `beats-power-bi`                 | Processing           |
+| `sqs-aws-eks-control-plane-logs` | Processing           |
+| `sqs-aws-fsx`                    | Processing           |
+| `sqs-aws-glue-logs`              | Processing           |
+| `sqs-aws-guardduty-logs`         | Processing           |
+
+The suggested priority assumes the two output pipelines are downstream dependencies. We still need to verify their actual configurations.
+
+## **6. Final deployment approach**
+
+**61 PROD / 58 DEV pipelines**
+
+Inventory comparison completed
+
+# **34**
+
+**Existing pipelines**
+
+Filter comparison and required updates
+
+# **8**
+
+**Missing pipelines**
+
+Prepare Non-LMA-compatible configurations
+
+**Review final configurations**
+
+Preserve Non-LMA outputs and verify dependencies
+
+**Take pre-change DEV snapshot**
+
+**Generate and execute PUT requests**
+
+Non-LMA Kibana Dev Tools only
+
+# **66 pipelines**
+
+**Expected final DEV inventory**
+
+Validate ingestion, snapshot, update repository and raise MR
+
+**For now, just complete Step 2 and share the comparison summary screenshot.** Based on the results, we can determine which existing filters actually need updating before preparing the final PUT requests.
+
+There is no need to modify any pipelines in Kibana yet. All the above steps are local and have no impact on either IBM production or development environments.
