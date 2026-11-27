@@ -1,0 +1,190 @@
+You have now copied the first three filter-only pipelines into `updated-dev-pipelines` successfully.
+
+From your screenshot, I can see that `beats-spm-logs` contains additional batch metrics field mappings, and the other visible change includes Ruby-based URL field handling. These are processing changes consistent with the Jira ticket requirement.
+
+## **1. Current progress**
+
+| Pipeline                       | Status         |
+| ------------------------------ | -------------- |
+| `beats-dell-boomi-common-logs` | Copied locally |
+| `beats-digital-portal-logs`    | Copied locally |
+| `beats-spm-logs`               | Copied locally |
+| `beats-apm`                    | Pending        |
+| `beats-doc-man-logs`           | Pending        |
+| `beats-privacyidea`            | Pending        |
+| `beats-was-logs`               | Pending        |
+| `beats-winlogbeat`             | Pending        |
+
+The first three still require final review and runtime validation before they can be considered deployed.
+
+## **2. Next step — update the remaining five pipelines**
+
+For these five pipelines, the inputs or outputs are different between PROD and DEV. Therefore, **do not copy the entire PROD configuration. Copy only the required filter changes.**
+
+Execute:
+
+```
+cd ~/lma-pipeline-comparison
+
+for pipeline in \
+beats-apm \
+beats-doc-man-logs \
+beats-privacyidea \
+beats-was-logs \
+beats-winlogbeat
+do
+    cp -n "dev-pipelines/$pipeline.conf" \
+    "updated-dev-pipelines/$pipeline.conf"
+done
+```
+
+The `-n` option prevents overwriting any working files you have already modified.
+
+## **3. Compare each pipeline in VS Code**
+
+Define this variable in your Mac terminal to make the commands shorter:
+
+```
+VSCODE="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+```
+
+### **Pipeline 1 — beats-apm**
+
+```
+"$VSCODE" --diff \
+updated-dev-pipelines/beats-apm.conf \
+prod-pipelines/beats-apm.conf
+```
+
+### **Pipeline 2 — beats-doc-man-logs**
+
+```
+"$VSCODE" --diff \
+updated-dev-pipelines/beats-doc-man-logs.conf \
+prod-pipelines/beats-doc-man-logs.conf
+```
+
+### **Pipeline 3 — beats-privacyidea**
+
+```
+"$VSCODE" --diff \
+updated-dev-pipelines/beats-privacyidea.conf \
+prod-pipelines/beats-privacyidea.conf
+```
+
+### **Pipeline 4 — beats-was-logs**
+
+```
+"$VSCODE" --diff \
+updated-dev-pipelines/beats-was-logs.conf \
+prod-pipelines/beats-was-logs.conf
+```
+
+### **Pipeline 5 — beats-winlogbeat**
+
+```
+"$VSCODE" --diff \
+updated-dev-pipelines/beats-winlogbeat.conf \
+prod-pipelines/beats-winlogbeat.conf
+```
+
+## **4. What to modify in each file**
+
+**LEFT — Non-LMA DEV**
+
+Working configuration
+
+`input { ... }`
+
+Retain
+
+`filter { ... }`
+
+Update from right side
+
+`output { ... }`
+
+Retain
+
+**RIGHT — Com-LMA PROD**
+
+Reference configuration
+
+`input { ... }`
+
+Do not copy blindly
+
+`filter { ... }`
+
+Copy latest filter logic
+
+`output { ... }`
+
+Do not copy blindly
+
+Some pipelines may contain multiple `filter` blocks, so make sure you review all of them, including any environment-specific references within the filters.
+
+If VS Code does not allow editing the left side of the comparison, open the corresponding file from `updated-dev-pipelines` directly in a separate editor tab, make the changes and save using `Command + S`.
+
+## **5. Validate all eight updated configurations**
+
+After completing the remaining five, generate a consolidated report containing all your intended changes.
+
+```
+awk -F, '$2=="FILTER_CHANGED" {print $1}' \
+section_comparison.csv | while read -r pipeline
+do
+    printf '\n========== %s ==========\n' "$pipeline"
+
+    diff -u \
+    "dev-pipelines/$pipeline.conf" \
+    "updated-dev-pipelines/$pipeline.conf"
+done > updated-filter-differences.txt
+```
+
+Open the report:
+
+```
+open -a "Visual Studio Code" \
+updated-filter-differences.txt
+```
+
+Verify that the report contains the intended filter changes and no unintended PROD input or output configurations.
+
+## **6. Overall IBM LMA-3785 progress**
+
+**Implementation tracker**
+
+4/14 completed
+
+Export PROD and DEV pipelines
+
+Compare pipeline inventory
+
+Compare individual sections
+
+Copy three filter-only pipelines
+
+Update remaining five filter pipelines
+
+Review 21 manual-review pipelines
+
+Review five input/output-only pipelines
+
+Adapt eight missing pipelines to Non-LMA
+
+Take pre-change snapshot
+
+Generate Dev Tools PUT requests
+
+Deploy and validate pipelines
+
+Take final snapshot
+
+Update startup object library
+
+Raise merge request
+
+**For now, concentrate on the remaining five filter pipelines.** After that, we will review the 21 manual-review pipelines and prepare the eight missing pipelines. Once everything is ready, we can generate the complete PUT requests automatically for Non-LMA Kibana Dev Tools.
+
+No changes to PROD or DEV Elasticsearch are required at this stage.
