@@ -1,0 +1,297 @@
+The section comparison has completed successfully. We now have a clearer scope for your **IBM LMA-3785 ticket**.
+
+## **1. Actual comparison results**
+
+# **19**
+
+**Matching configurations**
+
+No changes required
+
+# **8**
+
+**Filter differences**
+
+Review and update filters
+
+# **5**
+
+**Input/output differences only**
+
+Review and retain DEV-specific configuration
+
+# **21**
+
+**Manual review**
+
+Check filter and routing differences
+
+# **8**
+
+**Missing in DEV**
+
+Create new pipelines
+
+# **5**
+
+**DEV-only pipelines**
+
+Retain existing pipelines
+
+**Expected final Non-LMA pipelines**
+
+# **66**
+
+The 21 pipelines marked `MANUAL_REVIEW` are not necessarily incorrect. Our comparison script could not reliably separate their input, filter and output sections because of their configuration structure.
+
+## **2. Eight pipelines with filter differences**
+
+From your screenshots:
+
+| Pipeline                     | Input     | Filter    | Output    |
+| ---------------------------- | --------- | --------- | --------- |
+| beats-apm                    | Same      | Different | Different |
+| beats-dell-boomi-common-logs | Same      | Different | Same      |
+| beats-digital-portal-logs    | Same      | Different | Same      |
+| beats-doc-man-logs           | Different | Different | Different |
+| beats-privacyidea            | Different | Different | Same      |
+| beats-spm-logs               | Same      | Different | Same      |
+| beats-was-logs               | Different | Different | Different |
+| beats-winlogbeat             | Different | Different | Same      |
+
+I suggest starting with these three pipelines because only their filter sections differ:
+
+- `beats-dell-boomi-common-logs`
+- `beats-digital-portal-logs`
+- `beats-spm-logs`
+
+These should be the simplest to review and update.
+
+## **3. Copy the eight existing DEV pipelines into your working directory**
+
+You have already copied the eight missing pipelines into `updated-dev-pipelines`.
+
+Now execute:
+
+```
+cd ~/lma-pipeline-comparison
+
+awk -F, '$2=="FILTER_CHANGED" {print $1}' \
+section_comparison.csv | while read -r pipeline
+do
+    cp -n "dev-pipelines/$pipeline.conf" \
+    updated-dev-pipelines/
+done
+```
+
+Verify:
+
+```
+ls -lrt updated-dev-pipelines/
+```
+
+You should now have 16 files, assuming the directory contained only the eight missing pipelines before this command.
+
+**updated-dev-pipelines/**
+
+**8 new pipelines**
+
+Copied from PROD — adapt to DEV
+
+**8 existing pipelines**
+
+Copied from DEV — update filters from PROD
+
+## **4. Compare and update the existing filters**
+
+Compare the working copy against the PROD version:
+
+```
+code --diff \
+updated-dev-pipelines/beats-dell-boomi-common-logs.conf \
+prod-pipelines/beats-dell-boomi-common-logs.conf
+```
+
+If the `code` command is unavailable, try:
+
+```
+"/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code" \
+--diff \
+updated-dev-pipelines/beats-dell-boomi-common-logs.conf \
+prod-pipelines/beats-dell-boomi-common-logs.conf
+```
+
+In VS Code, copy the required filter changes from the right-side PROD configuration into the left-side working configuration.
+
+**Left — Updated DEV**
+
+`input { ... }`
+
+Retain DEV
+
+`filter { ... }`
+
+Update from PROD
+
+`output { ... }`
+
+Retain DEV
+
+Save this file.
+
+**Right — PROD reference**
+
+`input { ... }`
+
+Reference only
+
+`filter { ... }`
+
+Latest processing logic
+
+`output { ... }`
+
+Reference only
+
+Do not modify this file.
+
+Review any environment-specific references inside the filters as well. Do not blindly replace those.
+
+After saving, compare the modified file against the original DEV configuration:
+
+```
+diff -u \
+dev-pipelines/beats-dell-boomi-common-logs.conf \
+updated-dev-pipelines/beats-dell-boomi-common-logs.conf
+```
+
+This confirms exactly what you intend to change in Non-LMA.
+
+## **5. Five pipelines with input/output differences only**
+
+| Pipeline                   | Input     | Output    |
+| -------------------------- | --------- | --------- |
+| beats-apm-server-logs      | Different | Different |
+| beats-apm-server-otel-logs | Same      | Different |
+| beats-dell-boomi-logs      | Different | Same      |
+| beats-metricbeat-output    | Same      | Different |
+| beats-output-moncluster    | Same      | Different |
+
+No filter updates are indicated for these five pipelines.
+
+Review their input and output differences to ensure there are no new routing requirements. If the differences are only environment-specific, leave them unchanged.
+
+## **6. Handle the 21 manual-review pipelines**
+
+Generate a separate list:
+
+```
+awk -F, '$2=="MANUAL_REVIEW" {print $1}' \
+section_comparison.csv > manual-review.txt
+```
+
+Generate a consolidated difference report for these 21 pipelines:
+
+```
+while read -r pipeline
+do
+    printf '\n========== %s ==========\n' "$pipeline"
+
+    diff -u \
+    "dev-pipelines/$pipeline.conf" \
+    "prod-pipelines/$pipeline.conf"
+
+done < manual-review.txt > manual-review-differences.txt
+```
+
+Open the report:
+
+```
+open -a "Visual Studio Code" \
+manual-review-differences.txt
+```
+
+Pay particular attention to these pipelines because they may control routing to other pipelines:
+
+| Pipeline                     | Reason                               |
+| ---------------------------- | ------------------------------------ |
+| beats-filebeat               | Potential parent routing             |
+| beats-elastic-agent          | Elastic Agent processing and routing |
+| beats-metricbeat             | Metricbeat processing                |
+| beats-auditbeat              | Auditbeat processing                 |
+| sqs-input                    | SQS input and downstream routing     |
+| beats-output-ingest-pipeline | Shared output processing             |
+
+For `beats-filebeat-output`, retain the existing DEV hosts and ignore the time-travel ingest pipeline difference as you specified, provided there are no outstanding filter changes.
+
+## **7. Prepare the eight missing pipelines**
+
+These files are already copied into your working directory.
+
+| Pipeline                       | Required action         |
+| ------------------------------ | ----------------------- |
+| beats-cds-logs                 | Create                  |
+| beats-power-bi                 | Create                  |
+| beats-s3-output                | Create and adapt output |
+| sqs-aws-eks-control-plane-logs | Create                  |
+| sqs-aws-fsx                    | Create                  |
+| sqs-aws-glue-logs              | Create                  |
+| sqs-aws-guardduty-logs         | Create                  |
+| sqs-common-integration-output  | Create and adapt output |
+
+Check their routing and destination configurations together using:
+
+```
+grep -nE 'hosts[[:space:]]*=>|send_to[[:space:]]*=>|address[[:space:]]*=>|bucket[[:space:]]*=>|queue[[:space:]]*=>' \
+missing-pipelines/*.conf
+```
+
+This will help identify whether the new pipelines require Elasticsearch output changes, AWS configuration changes or simply pipeline-to-pipeline routing.
+
+## **8. Current implementation checklist**
+
+**IBM LMA-3785 tracker**
+
+5/16 completed
+
+Export PROD pipelines
+
+Export DEV pipelines
+
+Compare pipeline inventory
+
+Compare input, filter and output sections
+
+Copy eight missing pipelines locally
+
+Prepare eight existing pipeline filter changes
+
+Review 21 manual-review pipelines
+
+Review five input/output-only differences
+
+Adapt eight missing pipelines to Non-LMA
+
+Validate parent/child pipeline dependencies
+
+Take pre-change DEV snapshot
+
+Generate Dev Tools PUT requests
+
+Deploy and validate Non-LMA pipelines
+
+Take final Logstash snapshot
+
+Update startup object library
+
+Raise MR
+
+## **9. What I suggest you do now**
+
+Start with **Step 3 and Step 4**. Compare `beats-dell-boomi-common-logs` first and share a screenshot of its filter differences.
+
+Also, open the two missing output pipeline configurations, `beats-s3-output` and `sqs-common-integration-output`, to establish how their PROD configurations need to be adapted for Non-LMA.
+
+Once the configurations are prepared, we can generate all the complete PUT requests automatically using Perl rather than creating each pipeline manually in Kibana.
+
+**Do not update anything in Kibana yet.** Complete the local configuration preparation, dependency review and pre-change snapshot first.
