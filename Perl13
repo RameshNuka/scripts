@@ -1,0 +1,169 @@
+Your screenshots confirm that the review of the final five input/output-only pipelines is complete. Only `beats-dell-boomi-logs` required a modification, and you have copied it into `updated-dev-pipelines`.
+
+This completes the local review of the existing pipelines, apart from `beats-squid-logs`, which remains on hold.
+
+## **1. Updated IBM LMA-3785 status**
+
+Existing pipeline updates
+
+# **25**
+
+New pipelines to create
+
+# **8**
+
+Total deployment candidates
+
+# **33**
+
+On hold
+
+# **1**
+
+| Category                         | Count  | Action                        |
+| -------------------------------- | ------ | ----------------------------- |
+| Existing pipelines modified      | 25     | Validate and deploy           |
+| Original matching pipelines      | 19     | Retain                        |
+| Reviewed but unchanged           | 8      | Retain                        |
+| DEV-only pipelines               | 5      | Retain                        |
+| On hold                          | 1      | Retain existing configuration |
+| Missing pipelines                | 8      | Prepare and create            |
+| **Final expected DEV inventory** | **66** | After deployment              |
+
+Now we should concentrate on the eight new pipelines. There is no need to repeat the existing pipeline comparison.
+
+## **2. Analysis of the eight new pipelines**
+
+From your second screenshot, I can identify the following routing and destination configurations.
+
+| New pipeline                     | Output destination                                      | Required action         |
+| -------------------------------- | ------------------------------------------------------- | ----------------------- |
+| `beats-cds-logs`                 | beats-filebeat-output                                   | Review and create       |
+| `beats-power-bi`                 | beats-filebeat-output                                   | Review and create       |
+| `beats-s3-output`                | AWS S3 buckets                                          | Adapt to Non-LMA        |
+| `sqs-aws-eks-control-plane-logs` | sqs-common-integration-output and beats-filebeat-output | Review and create       |
+| `sqs-aws-fsx`                    | beats-filebeat-output                                   | Review and create       |
+| `sqs-aws-glue-logs`              | beats-filebeat-output                                   | Review and create       |
+| `sqs-aws-guardduty-logs`         | sqs-common-integration-output                           | Review and create       |
+| `sqs-common-integration-output`  | Com-LMA Elasticsearch hosts                             | Change to Non-LMA hosts |
+
+Six pipelines use internal pipeline-to-pipeline routing. The two output pipelines require particular attention.
+
+## **3. New pipeline architecture**
+
+Routing identified from your terminal output, with the intended Non-LMA destinations.
+
+## **4. Update&#x20;**`sqs-common-integration-output`
+
+This should be the simplest new output pipeline to adapt.
+
+Open the file:
+
+```
+cd ~/lma-pipeline-comparison
+
+open -a "Visual Studio Code" \
+updated-dev-pipelines/sqs-common-integration-output.conf
+```
+
+Replace the six Com-LMA Elasticsearch hosts with your existing Non-LMA format:
+
+```
+hosts => ["${CLUSTER_ABV}.elastic.lm.non.sss.int:9200"]
+```
+
+Review the remaining settings against an existing Non-LMA Elasticsearch output, including authentication, SSL certificates and data stream configuration.
+
+Save using **Command + S**.
+
+## **5. Review&#x20;**`beats-s3-output`
+
+This pipeline contains multiple hardcoded S3 bucket names corresponding to different environments or stages.
+
+**Do not copy these bucket names directly into Non-LMA without verification.**
+
+Check whether any existing Non-LMA pipelines use S3 outputs:
+
+```
+grep -nE '^[[:space:]]*bucket[[:space:]]*=>' \
+dev-pipelines/*.conf
+```
+
+Also check for S3 output configurations:
+
+```
+grep -nE '^[[:space:]]*s3[[:space:]]*\{' \
+dev-pipelines/*.conf
+```
+
+If you cannot identify the correct Non-LMA S3 buckets, AWS account and permissions, confirm them with your team before deploying this pipeline.
+
+Do not enable parent routing to `beats-s3-output` until its destination configuration is validated.
+
+## **6. Review the remaining six new pipelines**
+
+Open all six files sequentially in VS Code:
+
+```
+VSCODE="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+
+for pipeline in \
+beats-cds-logs \
+beats-power-bi \
+sqs-aws-eks-control-plane-logs \
+sqs-aws-fsx \
+sqs-aws-glue-logs \
+sqs-aws-guardduty-logs
+do
+    echo "Reviewing: $pipeline"
+
+    "$VSCODE" --wait \
+    "updated-dev-pipelines/$pipeline.conf" \
+    </dev/null
+done
+```
+
+For these six pipelines, check the following before approving them:
+
+- Internal pipeline addresses.
+- Filter logic and environment-specific variables.
+- Any hardcoded account names or external destinations.
+- Downstream pipeline availability.
+- Required Logstash plugins and external dictionary files.
+
+If everything is compatible with Non-LMA, you can retain their existing configurations.
+
+## **7. Verify parent pipeline routing**
+
+You have already updated `beats-filebeat` and `sqs-input` locally. Check whether the new pipelines are referenced in them.
+
+```
+grep -nE 'send_to|beats-cds-logs|beats-power-bi|beats-s3-output' \
+updated-dev-pipelines/beats-filebeat.conf
+```
+
+```
+grep -nE 'send_to|sqs-aws-eks-control-plane-logs|sqs-aws-fsx|sqs-aws-glue-logs|sqs-aws-guardduty-logs' \
+updated-dev-pipelines/sqs-input.conf
+```
+
+We need to ensure the new pipelines will actually receive events after creation.
+
+## **8. What to do now**
+
+| Priority | Activity                                                |
+| -------- | ------------------------------------------------------- |
+| 1        | Modify `sqs-common-integration-output` hosts            |
+| 2        | Identify correct Non-LMA S3 buckets                     |
+| 3        | Review the six new processing pipelines                 |
+| 4        | Verify parent/child routing                             |
+| 5        | Validate all 33 candidate configurations                |
+| 6        | Take pre-change Non-LMA snapshot                        |
+| 7        | Generate complete PUT requests using Perl               |
+| 8        | Deploy through Non-LMA Kibana Dev Tools                 |
+| 9        | Validate ingestion and pipeline execution               |
+| 10       | Take final snapshot and raise startup object library MR |
+
+**For now, complete Steps 4 and 5.** The main outstanding dependency is the S3 configuration. Once that is resolved, we can prepare the automated PUT requests for the 25 existing pipeline updates and eight new pipeline creations.
+
+All changes are still local. Keep `beats-squid-logs` excluded from deployment.
