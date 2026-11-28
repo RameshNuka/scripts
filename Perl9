@@ -1,0 +1,299 @@
+Yes. **Comparing the 21 pipelines individually, side by side in VS Code, is better than reviewing one consolidated difference file.** It makes it easier to identify filter changes, ignore environment-specific differences and update the configuration without accidentally copying PROD outputs.
+
+You can automate opening all 21 comparisons sequentially instead of manually entering each command.
+
+## **Step 1: Prepare the manual-review files**
+
+You have already updated eight pipelines in `updated-dev-pipelines`. Keep those changes untouched.
+
+Execute:
+
+```
+cd ~/lma-pipeline-comparison
+
+mkdir -p manual-review-pipelines
+
+awk -F, '$2=="MANUAL_REVIEW" {print $1}' \
+section_comparison.csv > manual-review.txt
+
+while read -r pipeline
+do
+    cp -n "dev-pipelines/$pipeline.conf" \
+    manual-review-pipelines/
+done < manual-review.txt
+```
+
+Verify the number of pipelines:
+
+```
+wc -l manual-review.txt
+```
+
+Expected result: **21**.
+
+## **Step 2: Automatically open all 21 comparisons in VS Code**
+
+Copy and paste this entire block into your Mac terminal:
+
+```
+VSCODE="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+
+while read -r pipeline
+do
+    echo "================================"
+    echo "Reviewing: $pipeline"
+    echo "================================"
+
+    "$VSCODE" --wait --diff \
+    "prod-pipelines/$pipeline.conf" \
+    "manual-review-pipelines/$pipeline.conf"
+
+done < manual-review.txt
+```
+
+This will open one pipeline comparison at a time. Once you finish reviewing and close the comparison tab using `Command + W`, the next pipeline should open automatically.
+
+## **Step 3: Identify which side to modify**
+
+**Important: I have intentionally reversed the comparison order from your previous activity.** VS Code normally allows editing the right-hand file, so this makes updating DEV easier.
+
+## **LEFT SIDE**
+
+**Com-LMA (PROD)**
+
+prod-pipelines/
+
+Reference only
+
+## **RIGHT SIDE**
+
+**Non-LMA (DEV)**
+
+manual-review-pipelines/
+
+Editable working copy
+
+`input { ... }`
+
+PROD input
+
+`filter { ... }`
+
+Latest filter logic
+
+`output { ... }`
+
+PROD output
+
+`input { ... }`
+
+Retain DEV
+
+`filter { ... }`
+
+Copy required changes from left
+
+`output { ... }`
+
+Retain DEV
+
+Remember to save changes using `Command + S` before closing each comparison.
+
+## **Step 4: What to check in each pipeline**
+
+| Difference                        | Action                        |
+| --------------------------------- | ----------------------------- |
+| Elasticsearch hostnames           | Ignore                        |
+| DEV/PROD credentials              | Retain DEV                    |
+| Environment-specific Stage values | Retain DEV where required     |
+| Grok patterns                     | Update                        |
+| Ruby filter code                  | Update                        |
+| Mutate filters                    | Update                        |
+| Date filters                      | Update                        |
+| New field mappings                | Update                        |
+| New processing conditions         | Review and update             |
+| New `send_to` routing             | Review and update if required |
+| S3 buckets and SQS queues         | Retain DEV-specific values    |
+| Time-travel ingest pipeline       | Ignore as previously agreed   |
+| Comments and blank lines          | Ignore                        |
+
+If there are no functional changes required, simply close the comparison without editing the file.
+
+## **Step 5: List of 21 pipelines to review**
+
+**Manual review tracker**
+
+0/21 reviewed
+
+1\. beats-auditbeat
+
+Pending
+
+2\. beats-auditbeat-output
+
+Pending
+
+3\. beats-db2-logs
+
+Pending
+
+4\. beats-elastic-agent
+
+Pending
+
+5\. beats-filebeat
+
+Pending
+
+6\. beats-filebeat-output
+
+Pending
+
+7\. beats-gitlab-logs
+
+Pending
+
+8\. beats-jenkins-logs
+
+Pending
+
+9\. beats-metricbeat
+
+Pending
+
+10\. beats-output-ingest-pipeline
+
+Pending
+
+11\. beats-packetbeat-output
+
+Pending
+
+12\. beats-sftp-logs
+
+Pending
+
+13\. beats-squid-logs
+
+Pending
+
+14\. beats-winlogbeat-output
+
+Pending
+
+15\. sqs-active-directory
+
+Pending
+
+16\. sqs-aws-cloudtrail
+
+Pending
+
+17\. sqs-aws-load-balancer
+
+Pending
+
+18\. sqs-aws-rds-metrics
+
+Pending
+
+19\. sqs-aws-waf
+
+Pending
+
+20\. sqs-iacx-environment-tracking
+
+Pending
+
+21\. sqs-input
+
+Pending
+
+Updated
+
+# **0**
+
+No change
+
+# **0**
+
+Pending
+
+# **21**
+
+&#x20;Copy review report
+
+## **Step 6: Automatically identify which files you changed**
+
+Once you complete the manual review, execute:
+
+```
+while read -r pipeline
+do
+    if cmp -s \
+        "dev-pipelines/$pipeline.conf" \
+        "manual-review-pipelines/$pipeline.conf"
+    then
+        echo "$pipeline : NO_CHANGE"
+    else
+        echo "$pipeline : MODIFIED"
+    fi
+done < manual-review.txt
+```
+
+This identifies which working configurations have changed compared with the original Non-LMA configurations.
+
+## **Step 7: Copy only the modified and reviewed pipelines**
+
+After reviewing and approving the changes, execute:
+
+```
+while read -r pipeline
+do
+    if ! cmp -s \
+        "dev-pipelines/$pipeline.conf" \
+        "manual-review-pipelines/$pipeline.conf"
+    then
+        cp -i "manual-review-pipelines/$pipeline.conf" \
+        "updated-dev-pipelines/$pipeline.conf"
+
+        echo "Processed: $pipeline"
+    fi
+done < manual-review.txt
+```
+
+The `-i` option asks before overwriting an existing working file.
+
+## **Step 8: Verify your final working directory**
+
+```
+ls -lrt updated-dev-pipelines/
+```
+
+Your directory structure will be:
+
+**lma-pipeline-comparison/**
+
+**prod-pipelines/**
+
+61 original PROD configurations
+
+**dev-pipelines/**
+
+58 original DEV configurations
+
+**manual-review-pipelines/**
+
+21 working configurations for review
+
+**missing-pipelines/**
+
+8 missing pipeline references
+
+**updated-dev-pipelines/**
+
+8 previously updated + 8 new candidates + newly modified pipelines
+
+**I recommend proceeding with Step 2 now.** Review each pipeline sequentially, save only required changes and close the tab to move to the next pipeline.
+
+This is much easier than reviewing all 21 configurations in a single report. The commands only modify local files; nothing will be deployed into Com-LMA or Non-LMA. The eight missing pipeline candidates will still need DEV-specific adaptation and validation before deployment.
