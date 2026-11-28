@@ -1,0 +1,215 @@
+Your screenshots confirm that the manual pipeline review and local file consolidation have completed successfully for **IBM LMA-3785**.
+
+## **1. Current progress**
+
+Existing pipelines prepared
+
+# **24**
+
+New pipeline candidates
+
+# **8**
+
+**Total files in updated-dev-pipelines**
+
+# **32**
+
+| Category                          | Count | Status                 |
+| --------------------------------- | ----- | ---------------------- |
+| Original matching pipelines       | 19    | No changes             |
+| Filter-difference pipelines       | 8     | Prepared locally       |
+| Manual-review pipelines modified  | 16    | Copied locally         |
+| Manual-review pipelines unchanged | 4     | Retain                 |
+| Manual-review pipeline on hold    | 1     | Excluded               |
+| Input/output-only pipelines       | 5     | Review pending         |
+| Missing pipelines                 | 8     | DEV adaptation pending |
+| DEV-only pipelines                | 5     | Retain                 |
+
+Your `beats-squid-logs` pipeline has also been correctly excluded, as confirmed by the terminal output.
+
+## **2. Verify all 32 files before proceeding**
+
+I noticed that four of the previously updated files still show a modification date of 26 November:
+
+- `beats-doc-man-logs`
+- `beats-privacyidea`
+- `beats-was-logs`
+- `beats-winlogbeat`
+
+This does not necessarily mean the changes are missing, but we should verify their actual contents rather than relying on timestamps.
+
+Execute:
+
+```
+cd ~/lma-pipeline-comparison
+
+for file in updated-dev-pipelines/*.conf
+do
+    name=$(basename "$file")
+
+    if [ ! -f "dev-pipelines/$name" ]; then
+        echo "$name : NEW"
+    elif cmp -s "$file" "dev-pipelines/$name"; then
+        echo "$name : UNCHANGED"
+    else
+        echo "$name : UPDATED"
+    fi
+
+done | tee final-pipeline-status.txt
+```
+
+Check the summary:
+
+```
+awk '{print $3}' final-pipeline-status.txt | sort | uniq -c
+```
+
+Expected result, assuming all intended changes were saved:
+
+```
+8 NEW
+24 UPDATED
+```
+
+If any files show `UNCHANGED`, check whether the edits were saved in the correct directory.
+
+## **3. Review the remaining five input/output-only pipelines**
+
+These are the final existing pipelines requiring review.
+
+| Pipeline                   | Input     | Output    |
+| -------------------------- | --------- | --------- |
+| beats-apm-server-logs      | Different | Different |
+| beats-apm-server-otel-logs | Same      | Different |
+| beats-dell-boomi-logs      | Different | Same      |
+| beats-metricbeat-output    | Same      | Different |
+| beats-output-moncluster    | Same      | Different |
+
+Create separate working copies:
+
+```
+mkdir -p input-output-review-pipelines
+
+awk -F, '$2=="INPUT_OUTPUT_ONLY" {print $1}' \
+section_comparison.csv > input-output-review.txt
+
+while IFS= read -r pipeline
+do
+    cp -n "dev-pipelines/$pipeline.conf" \
+    input-output-review-pipelines/
+done < input-output-review.txt
+```
+
+Open the five files sequentially for side-by-side comparison:
+
+```
+VSCODE="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+
+while IFS= read -r pipeline
+do
+    echo "Reviewing: $pipeline"
+
+    "$VSCODE" --wait --diff \
+    "prod-pipelines/$pipeline.conf" \
+    "input-output-review-pipelines/$pipeline.conf" \
+    </dev/null
+
+done < input-output-review.txt
+```
+
+As before:
+
+**LEFT SIDE**
+
+Com-LMA (PROD)
+
+Reference only
+
+**RIGHT SIDE**
+
+Non-LMA (DEV)
+
+Editable working copy
+
+If the differences are only hostnames, credentials or other intentional environment-specific settings, leave the files unchanged. Check whether any new routing is required.
+
+If you make any necessary changes, save them and copy only the reviewed, modified files:
+
+```
+while IFS= read -r pipeline
+do
+    if ! cmp -s \
+        "dev-pipelines/$pipeline.conf" \
+        "input-output-review-pipelines/$pipeline.conf"
+    then
+        cp -i \
+        "input-output-review-pipelines/$pipeline.conf" \
+        updated-dev-pipelines/
+    fi
+done < input-output-review.txt
+```
+
+## **4. Next major task — create eight missing pipelines**
+
+Once the five existing pipelines have been reviewed, concentrate on the eight missing pipelines.
+
+| Pipeline                       | Required action                 |
+| ------------------------------ | ------------------------------- |
+| beats-cds-logs                 | Create                          |
+| beats-power-bi                 | Create                          |
+| beats-s3-output                | Create with DEV-specific output |
+| sqs-aws-eks-control-plane-logs | Create                          |
+| sqs-aws-fsx                    | Create                          |
+| sqs-aws-glue-logs              | Create                          |
+| sqs-aws-guardduty-logs         | Create                          |
+| sqs-common-integration-output  | Create with DEV-specific output |
+
+These are already present locally in `updated-dev-pipelines`, but they must be reviewed and adapted before deployment.
+
+## **5. Remaining implementation tracker**
+
+**IBM LMA-3785**
+
+7/18 completed
+
+Export PROD and DEV pipelines
+
+Compare pipeline inventory
+
+Compare pipeline sections
+
+Prepare eight filter-difference pipelines
+
+Review 21 manual-review pipelines
+
+Copy 16 modified manual-review pipelines
+
+Exclude beats-squid-logs
+
+Verify 24 updated configurations
+
+Review five input/output-only pipelines
+
+Adapt eight missing pipelines to DEV
+
+Validate pipeline dependencies
+
+Take pre-change snapshot
+
+Generate Dev Tools PUT requests
+
+Deploy pipelines in Non-LMA
+
+Validate pipeline execution and ingestion
+
+Take final Logstash snapshot
+
+Update startup object library
+
+Raise merge request
+
+**My recommendation: Complete Steps 2 and 3 now.** If the remaining five pipelines require no changes, your deployment scope will remain at 24 existing pipeline updates and eight new pipeline creations, subject to final validation.
+
+The expected final Non-LMA inventory is **66 pipelines**. Keep `beats-squid-logs` unchanged until the team discussion is completed.
+
+Do not execute any PUT requests in Kibana yet.
