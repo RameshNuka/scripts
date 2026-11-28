@@ -1,0 +1,153 @@
+Your screenshots confirm that all **24 existing pipeline configurations have been modified locally**, and all eight missing pipeline files are available. You have also completed the comparison loop for the remaining five input/output-only pipelines.
+
+## **1. Current IBM LMA-3785 status**
+
+Existing pipeline updates
+
+# **24**
+
+New pipeline candidates
+
+# **8**
+
+Total local configurations
+
+# **32**
+
+On hold
+
+# **1**
+
+beats-squid-logs is correctly excluded.
+
+## **2. Check whether the last five pipelines were modified**
+
+Execute:
+
+```
+cd ~/lma-pipeline-comparison
+
+while IFS= read -r pipeline
+do
+    if cmp -s \
+        "dev-pipelines/$pipeline.conf" \
+        "input-output-review-pipelines/$pipeline.conf"
+    then
+        echo "$pipeline : NO_CHANGE"
+    else
+        echo "$pipeline : MODIFIED"
+    fi
+done < input-output-review.txt
+```
+
+If all five show `NO_CHANGE`, no further action is required for those pipelines, provided you have confirmed that their differences are intentional.
+
+If any show `MODIFIED`, review and copy those configurations:
+
+```
+while IFS= read -r pipeline
+do
+    if ! cmp -s \
+        "dev-pipelines/$pipeline.conf" \
+        "input-output-review-pipelines/$pipeline.conf"
+    then
+        cp -i \
+        "input-output-review-pipelines/$pipeline.conf" \
+        updated-dev-pipelines/
+    fi
+done < input-output-review.txt
+```
+
+## **3. Next activity — prepare the eight new pipelines**
+
+Your existing pipeline review is nearly complete. We should now concentrate on adapting the eight missing pipelines to Non-LMA.
+
+| Pipeline                         | Action                          |
+| -------------------------------- | ------------------------------- |
+| `beats-cds-logs`                 | Review and create               |
+| `beats-power-bi`                 | Review and create               |
+| `beats-s3-output`                | Adapt destination configuration |
+| `sqs-aws-eks-control-plane-logs` | Review and create               |
+| `sqs-aws-fsx`                    | Review and create               |
+| `sqs-aws-glue-logs`              | Review and create               |
+| `sqs-aws-guardduty-logs`         | Review and create               |
+| `sqs-common-integration-output`  | Adapt destination configuration |
+
+### **Check the inputs, outputs and routing of all eight pipelines**
+
+Execute:
+
+```
+grep -nE \
+'hosts[[:space:]]*=>|send_to[[:space:]]*=>|address[[:space:]]*=>|bucket[[:space:]]*=>|queue[[:space:]]*=>|index[[:space:]]*=>|pipeline[[:space:]]*=>' \
+missing-pipelines/*.conf
+```
+
+This will help identify which pipelines require environment-specific changes.
+
+## **4. Open the two new output pipelines first**
+
+I recommend starting with `beats-s3-output` and `sqs-common-integration-output`, as their destination configurations must be compatible with Non-LMA.
+
+```
+open -a "Visual Studio Code" \
+updated-dev-pipelines/beats-s3-output.conf
+```
+
+```
+open -a "Visual Studio Code" \
+updated-dev-pipelines/sqs-common-integration-output.conf
+```
+
+For Elasticsearch outputs, where applicable, follow your existing Non-LMA hostname convention:
+
+```
+hosts => ["${CLUSTER_ABV}.elastic.lm.non.sss.int:9200"]
+```
+
+For S3 outputs, verify the Non-LMA bucket, AWS account, IAM permissions and credential references. Do not reuse production destinations.
+
+## **5. Check routing dependencies**
+
+You have already modified `beats-filebeat` and `sqs-input`. Check whether the eight new pipelines are referenced by any parent pipelines.
+
+```
+for file in missing-pipelines/*.conf
+do
+    pipeline=$(basename "$file" .conf)
+
+    echo ""
+    echo "===== $pipeline ====="
+
+    grep -nF "$pipeline" \
+    updated-dev-pipelines/*.conf \
+    dev-pipelines/*.conf
+done
+```
+
+This is a preliminary text search. Verify the actual `send_to` and `address` values, since they do not necessarily match the pipeline IDs.
+
+## **6. Remaining implementation activities**
+
+| Activity                                     | Status             |
+| -------------------------------------------- | ------------------ |
+| Inventory comparison                         | Completed          |
+| Eight filter pipeline updates                | Completed locally  |
+| Sixteen manual-review updates                | Completed locally  |
+| Exclude beats-squid-logs                     | Completed          |
+| Five input/output pipeline reviews           | Final verification |
+| Prepare eight missing pipelines              | **Next activity**  |
+| Validate all configurations and dependencies | Pending            |
+| Take pre-change snapshot                     | Pending            |
+| Generate bulk Dev Tools PUT requests         | Pending            |
+| Deploy to Non-LMA                            | Pending            |
+| Validate all 66 pipelines                    | Pending            |
+| Take final snapshot                          | Pending            |
+| Update startup object library                | Pending            |
+| Raise merge request                          | Pending            |
+
+**For now, execute Steps 2 and 3 and share screenshots of the output configurations of&#x20;**`beats-s3-output`**&#x20;and&#x20;**`sqs-common-integration-output`**, with sensitive values masked.**
+
+Once those eight new configurations are adapted, we can generate the PUT requests for all 32 candidate pipelines automatically using Perl, rather than manually creating or updating each pipeline in Kibana.
+
+Your existing 24 modified files have been verified as different from the original DEV files, but their runtime correctness and environment compatibility still require validation before deployment.
