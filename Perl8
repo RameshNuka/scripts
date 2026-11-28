@@ -1,0 +1,214 @@
+Now that all **8 existing pipelines with filter differences have been updated locally**, we can move to the remaining pipelines for IBM LMA-3785.
+
+## **1. Current progress**
+
+# **19**
+
+**Matching pipelines**
+
+No changes required
+
+# **8**
+
+**Filter changes**
+
+Updated locally — validation pending
+
+# **5**
+
+**Input/output differences**
+
+Review environment and routing differences
+
+# **21**
+
+**Manual review**
+
+Next activity
+
+# **8**
+
+**Missing pipelines**
+
+Copied locally — DEV adaptation pending
+
+# **5**
+
+**DEV-only pipelines**
+
+Retain
+
+## **2. Verify the eight updated pipelines**
+
+Execute the following to generate a consolidated report of your changes.
+
+```
+cd ~/lma-pipeline-comparison
+
+awk -F, '$2=="FILTER_CHANGED" {print $1}' \
+section_comparison.csv | while read -r pipeline
+do
+    printf '\n========== %s ==========\n' "$pipeline"
+
+    diff -u \
+    "dev-pipelines/$pipeline.conf" \
+    "updated-dev-pipelines/$pipeline.conf"
+done > updated-filter-differences.txt
+```
+
+Open the report:
+
+```
+open -a "Visual Studio Code" \
+updated-filter-differences.txt
+```
+
+Confirm that the required filter changes have been applied and the Non-LMA-specific configurations are retained.
+
+## **3. Next activity — review the 21 manual-review pipelines**
+
+These pipelines could not be automatically classified because of their configuration structure.
+
+| No. | Pipeline                      |
+| --- | ----------------------------- |
+| 1   | beats-auditbeat               |
+| 2   | beats-auditbeat-output        |
+| 3   | beats-db2-logs                |
+| 4   | beats-elastic-agent           |
+| 5   | beats-filebeat                |
+| 6   | beats-filebeat-output         |
+| 7   | beats-gitlab-logs             |
+| 8   | beats-jenkins-logs            |
+| 9   | beats-metricbeat              |
+| 10  | beats-output-ingest-pipeline  |
+| 11  | beats-packetbeat-output       |
+| 12  | beats-sftp-logs               |
+| 13  | beats-squid-logs              |
+| 14  | beats-winlogbeat-output       |
+| 15  | sqs-active-directory          |
+| 16  | sqs-aws-cloudtrail            |
+| 17  | sqs-aws-load-balancer         |
+| 18  | sqs-aws-rds-metrics           |
+| 19  | sqs-aws-waf                   |
+| 20  | sqs-iacx-environment-tracking |
+| 21  | sqs-input                     |
+
+### **Copy these into a separate review directory**
+
+Do not copy all of them into `updated-dev-pipelines` yet, as some may not require any changes.
+
+```
+mkdir -p manual-review-pipelines
+
+awk -F, '$2=="MANUAL_REVIEW" {print $1}' \
+section_comparison.csv | while read -r pipeline
+do
+    cp -n "dev-pipelines/$pipeline.conf" \
+    manual-review-pipelines/
+done
+```
+
+### **Generate a consolidated comparison report**
+
+```
+awk -F, '$2=="MANUAL_REVIEW" {print $1}' \
+section_comparison.csv | while read -r pipeline
+do
+    printf '\n========== %s ==========\n' "$pipeline"
+
+    diff -u \
+    "dev-pipelines/$pipeline.conf" \
+    "prod-pipelines/$pipeline.conf"
+done > manual-review-differences.txt
+```
+
+Open the report:
+
+```
+open -a "Visual Studio Code" \
+manual-review-differences.txt
+```
+
+You can now review all 21 differences in a single file.
+
+## **4. Rules to follow for the manual-review pipelines**
+
+| Difference                   | Action                                    |
+| ---------------------------- | ----------------------------------------- |
+| Only Elasticsearch hostnames | Ignore                                    |
+| Time-travel ingest pipeline  | Ignore for the previously agreed pipeline |
+| Environment-specific values  | Retain Non-LMA                            |
+| Filter logic changes         | Update from Com-LMA                       |
+| Comments or formatting       | Ignore if behaviour is unchanged          |
+| New `send_to` routing        | Review and update if required             |
+| New processing conditions    | Review and update                         |
+| No functional changes        | Leave pipeline unchanged                  |
+
+If a pipeline requires changes, copy its DEV configuration into `updated-dev-pipelines` and update the required sections.
+
+For example:
+
+```
+cp -n dev-pipelines/beats-auditbeat.conf \
+updated-dev-pipelines/
+```
+
+Compare it against PROD:
+
+```
+"$VSCODE" --diff \
+updated-dev-pipelines/beats-auditbeat.conf \
+prod-pipelines/beats-auditbeat.conf
+```
+
+## **5. Prioritise these pipelines**
+
+I suggest checking these first because they may contain routing changes required to support the eight new pipelines.
+
+- `beats-filebeat`
+- `sqs-input`
+- `beats-elastic-agent`
+- `beats-auditbeat`
+- `beats-metricbeat`
+
+For example, adding a new child pipeline without updating its parent routing could result in the pipeline being created successfully but never receiving events.
+
+## **6. Remaining implementation checklist**
+
+**LMA-3785 implementation tracker**
+
+4/15
+
+Export PROD and DEV configurations
+
+Compare pipeline inventory
+
+Compare individual sections
+
+Update eight identified filter pipelines locally
+
+Review 21 manual-review pipelines
+
+Review five input/output-only pipelines
+
+Adapt eight missing pipelines for Non-LMA
+
+Validate parent/child routing
+
+Take pre-change snapshot
+
+Generate PUT requests automatically
+
+Deploy through Non-LMA Dev Tools
+
+Validate pipeline execution and ingestion
+
+Create final Logstash snapshot
+
+Update startup object library
+
+Raise merge request
+
+**For now, generate&#x20;**`manual-review-differences.txt`**&#x20;and start reviewing the 21 pipelines.** Only add configurations that genuinely require changes to `updated-dev-pipelines`.
+
+Once this is completed and the eight missing pipelines are adapted, we can generate a consolidated set of PUT requests automatically for Non-LMA Kibana Dev Tools, preserving existing DEV pipeline settings. No Elasticsearch changes are required yet.
