@@ -1,0 +1,148 @@
+Your screenshot shows that the comparison loop has reached the last pipeline, `sqs-input`, and returned to the terminal prompt.
+
+Assuming you have reviewed and saved the required changes in VS Code, the next step is to **identify which of the 21 manual-review pipelines you actually modified and copy only those into&#x20;**`updated-dev-pipelines`**.**
+
+We will explicitly exclude `beats-squid-logs` because it is on hold pending your team discussion.
+
+## **Step 1: Identify modified pipelines**
+
+Execute the following:
+
+```
+cd ~/lma-pipeline-comparison
+
+while IFS= read -r pipeline
+do
+    if [ "$pipeline" = "beats-squid-logs" ]; then
+        echo "$pipeline : ON_HOLD"
+        continue
+    fi
+
+    if [ ! -f "manual-review-pipelines/$pipeline.conf" ]; then
+        echo "$pipeline : FILE_MISSING"
+        continue
+    fi
+
+    if cmp -s \
+        "dev-pipelines/$pipeline.conf" \
+        "manual-review-pipelines/$pipeline.conf"
+    then
+        echo "$pipeline : NO_CHANGE"
+    else
+        echo "$pipeline : MODIFIED"
+    fi
+
+done < manual-review.txt | tee manual-review-results.txt
+```
+
+This will classify the pipelines as follows:
+
+| Status         | Meaning                             |
+| -------------- | ----------------------------------- |
+| `MODIFIED`     | Local configuration has changed     |
+| `NO_CHANGE`    | Original DEV configuration retained |
+| `ON_HOLD`      | Excluded pending discussion         |
+| `FILE_MISSING` | Requires investigation              |
+
+## **Step 2: Copy only the modified pipelines**
+
+After confirming the results from Step 1, execute:
+
+```
+while IFS= read -r pipeline
+do
+    [ "$pipeline" = "beats-squid-logs" ] && continue
+
+    cp -n \
+    "manual-review-pipelines/$pipeline.conf" \
+    "updated-dev-pipelines/$pipeline.conf"
+
+    echo "Processed: $pipeline"
+
+done < <(awk '$3=="MODIFIED" {print $1}' manual-review-results.txt)
+```
+
+The `-n` option prevents overwriting any previously updated configurations.
+
+## **Step 3: Verify the modified pipeline list**
+
+```
+grep ' : MODIFIED$' manual-review-results.txt
+```
+
+Check how many pipelines were modified:
+
+```
+grep -c ' : MODIFIED$' manual-review-results.txt
+```
+
+Check all files in your updated directory:
+
+```
+ls -lrt updated-dev-pipelines/
+```
+
+Count the files:
+
+```
+ls updated-dev-pipelines/*.conf | wc -l
+```
+
+## **Step 4: Ensure beats-squid-logs is excluded**
+
+```
+if [ -f updated-dev-pipelines/beats-squid-logs.conf ]; then
+    mkdir -p on-hold-pipelines
+
+    mv -i updated-dev-pipelines/beats-squid-logs.conf \
+    on-hold-pipelines/
+else
+    echo "beats-squid-logs is correctly excluded"
+fi
+```
+
+## **Step 5: Current IBM LMA-3785 progress**
+
+| Activity                              | Status                    |
+| ------------------------------------- | ------------------------- |
+| PROD and DEV inventory comparison     | Completed                 |
+| 19 matching pipelines                 | No changes                |
+| 8 filter-difference pipelines         | Updated locally           |
+| 21 manual-review pipelines            | Comparison loop completed |
+| Copy modified manual-review pipelines | Do now                    |
+| beats-squid-logs                      | On hold                   |
+| 5 input/output-only pipelines         | Review pending            |
+| 8 missing pipelines                   | DEV adaptation pending    |
+| Generate Dev Tools PUT requests       | Pending                   |
+| Pre-change snapshot                   | Pending                   |
+| Non-LMA deployment                    | Pending                   |
+| Final snapshot                        | Pending                   |
+| Startup object library MR             | Pending                   |
+
+## **Step 6: Review the remaining five pipelines**
+
+Once the modified files are copied, review the five pipelines previously classified as `INPUT_OUTPUT_ONLY`.
+
+```
+VSCODE="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+
+awk -F, '$2=="INPUT_OUTPUT_ONLY" {print $1}' \
+section_comparison.csv > input-output-review.txt
+
+while IFS= read -r pipeline
+do
+    echo "Reviewing: $pipeline"
+
+    "$VSCODE" --wait --diff \
+    "prod-pipelines/$pipeline.conf" \
+    "dev-pipelines/$pipeline.conf" \
+    </dev/null
+
+done < input-output-review.txt
+```
+
+Use these comparisons for reference only; do not edit the original DEV files. If the differences are purely environment-specific, leave them unchanged.
+
+**For now, complete Steps 1–4 and share the modified pipeline list and total file count.** We can then concentrate on preparing the eight missing pipelines and generating the PUT requests for Non-LMA Kibana Dev Tools.
+
+Nothing has been deployed into Elasticsearch yet, and the completed comparison loop alone does not confirm that every configuration has been reviewed or validated.
